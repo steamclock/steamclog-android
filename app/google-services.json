@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "633846291932",
+    "firebase_url": "https://steamclog-samples.firebaseio.com",
+    "project_id": "steamclog-samples",
+    "storage_bucket": "steamclog-samples.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633846291932:android:c3690b1468fb22535f4319",
+        "android_client_info": {
+          "package_name": "com.example.steamclog"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "633846291932-eoav1q021seqcntq99si4d6kr6g4opq8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-5D4CeOnVeuPcTkrbyOnf6q2xj-1mHOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "633846291932-eoav1q021seqcntq99si4d6kr6g4opq8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

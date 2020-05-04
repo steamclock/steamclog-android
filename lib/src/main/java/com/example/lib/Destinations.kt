@@ -2,6 +2,7 @@ package com.example.lib
 
 import android.util.Log
 import com.crashlytics.android.Crashlytics
+import io.fabric.sdk.android.Fabric
 import timber.log.Timber
 import java.io.File
 import java.io.FileWriter
@@ -24,10 +25,10 @@ import java.util.*
 /**
  * CrashlyticsDestination
  */
-class CrashlyticsDestination : Timber.Tree() {
+internal class CrashlyticsDestination : Timber.Tree() {
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(Steamclog.config.destinationLevels.crashlytics, priority)
+        return isLoggable(SteamcLog.config.logLevel.crashlytics, priority)
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
@@ -42,10 +43,10 @@ class CrashlyticsDestination : Timber.Tree() {
  * ConsoleDestination
  * DebugTree gives us access to override createStackElementTag
  */
-class ConsoleDestination: Timber.DebugTree() {
+internal class ConsoleDestination: Timber.DebugTree() {
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(Steamclog.config.destinationLevels.console, priority)
+        return isLoggable(SteamcLog.config.logLevel.console, priority)
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
@@ -59,14 +60,14 @@ class ConsoleDestination: Timber.DebugTree() {
  * ExternalLogFileDestination
  * DebugTree gives us access to override createStackElementTag
  */
-class ExternalLogFileDestination : Timber.DebugTree() {
+internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var fileNamePrefix: String = "SteamLogger"
     private var fileNameTimestamp = "yyyy_MM_dd"
     private var logTimestampFormat = "yyyy-MM-dd'.'HH:mm:ss.SSS"
     private var fileExt = "txt"
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(Steamclog.config.destinationLevels.file, priority)
+        return isLoggable(SteamcLog.config.logLevel.file, priority)
     }
 
     //---------------------------------------------
@@ -111,20 +112,20 @@ class ExternalLogFileDestination : Timber.DebugTree() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(Steamclog.config.identifier, "HTMLFileTree failed to write into file: $e")
+            Log.e(SteamcLog.config.identifier, "HTMLFileTree failed to write into file: $e")
         }
     }
 
     private fun getExternalFile(): File? {
         val date = SimpleDateFormat(fileNameTimestamp, Locale.US).format(Date())
         val filename = "${fileNamePrefix}_${date}.${fileExt}"
-        val outputFilePath = Steamclog.config.fileWritePath
+        val outputFilePath = SteamcLog.config.fileWritePath
 
         return try {
             File(outputFilePath, filename)
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
-            Log.e(Steamclog.config.identifier,"HTMLFileTree failed to getExternalFile: $e")
+            Log.e(SteamcLog.config.identifier,"HTMLFileTree failed to getExternalFile: $e")
             null
         }
     }
@@ -141,10 +142,11 @@ class ExternalLogFileDestination : Timber.DebugTree() {
 //        }
 //    }
 
-    fun removeOldLogFiles() {
-        val outputFilePath = Steamclog.config.fileWritePath
+    private val outputFilePath = SteamcLog.config.fileWritePath
+
+    private fun removeOldLogFiles() {
         val deleteThese = ArrayList<File>()
-        val expiryMs = Steamclog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
+        val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
 
         outputFilePath?.listFiles()?.forEach { file ->
             val now = Date().time
@@ -152,31 +154,31 @@ class ExternalLogFileDestination : Timber.DebugTree() {
         }
 
         deleteThese.forEach { file ->
-            Log.d(Steamclog.config.identifier, "Deleting file ${file.name}")
+            Log.d(SteamcLog.config.identifier, "Deleting file ${file.name}")
             file.delete()
         }
     }
 
-    fun getLogFileContents(): String? {
+    internal suspend fun getLogFileContents(): String? {
         removeOldLogFiles()
-        val outputFilePath = Steamclog.config.fileWritePath
+        val outputFilePath = SteamcLog.config.fileWritePath
         val logBuilder = StringBuilder()
         outputFilePath?.listFiles()?.forEach { file ->
             try {
-                Log.d(Steamclog.config.identifier, "Reading file ${file.name}")
+                Log.d(SteamcLog.config.identifier, "Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
                 // todo, if we end up with super large logs we will have to read differently.
                 logBuilder.append(file.readText() )
             } catch (e: Exception) {
                 // Do not call Timber here, or will will infinitely loop
-                Log.e(Steamclog.config.identifier,"getLogFileContents failed to read file: $e")
+                Log.e(SteamcLog.config.identifier,"getLogFileContents failed to read file: $e")
             }
         }
 
         return logBuilder.toString()
     }
 
-    fun deleteLogFile() {
+    internal fun deleteLogFile() {
         getExternalFile()?.delete()
     }
 }
@@ -188,7 +190,7 @@ class ExternalLogFileDestination : Timber.DebugTree() {
  * Determines if the log (at given android.util.Log priority) should be logged given the
  * current tree logging level.
  */
-fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Boolean {
+internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Boolean {
     return (treeLevel != LogLevel.None) && (logPriority >= treeLevel.javaLevel)
 }
 

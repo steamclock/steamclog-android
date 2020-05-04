@@ -1,7 +1,16 @@
+@file:Suppress("unused")
+
 package com.example.lib
 
+import android.content.Context
+import com.crashlytics.android.Crashlytics
+import io.fabric.sdk.android.Fabric
+import android.os.Bundle
+import android.os.Parcelable
+import com.google.firebase.analytics.FirebaseAnalytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
+import java.io.Serializable
 
 /**
  * Steamclog
@@ -11,27 +20,59 @@ import timber.log.Timber
  * A wrapper around the Timber logging library, giving us more control over what is logged and when.
  */
 
-typealias clog = Steamclog
-object Steamclog {
+typealias clog = SteamcLog
+@Suppress("SpellCheckingInspection")
+object SteamcLog {
 
     //---------------------------------------------
     // Privates
     //---------------------------------------------
-    private var crashlyticsTree = CrashlyticsDestination()
-    private var customDebugTree = ConsoleDestination()
-    private var externalLogFileTree = ExternalLogFileDestination()
+    @Suppress("JoinDeclarationAndAssignment")
+    private var crashlyticsTree: CrashlyticsDestination
+    private var customDebugTree: ConsoleDestination
+    private var externalLogFileTree: ExternalLogFileDestination
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
+
+    private var initialized: Boolean = false
+    private var appContext: Context? = null
 
     //---------------------------------------------
     // Public properties
     //---------------------------------------------
     var config: Config = Config()
+        set(value) {
+            field = value
+            // attempt to initialize fabric
+            appContext?.let { initialize(it) }
+        }
 
     init {
+        // initializing in order
+        crashlyticsTree = CrashlyticsDestination()
+        customDebugTree = ConsoleDestination()
+        externalLogFileTree = ExternalLogFileDestination()
+
         // By default plant all trees; setting their level to LogLevel.None will effectively
         // disable that tree, but we do not uproot it.
         updateTree(customDebugTree, true)
         updateTree(crashlyticsTree, true)
         updateTree(externalLogFileTree, true)
+    }
+
+    fun initialize(appContext: Context) {
+        if (initialized) {
+            return
+        }
+        this.appContext = appContext
+        if (config.logLevel.crashlytics == LogLevel.None) {
+            warn("Fabric not initialized for log level ${config.logLevel}")
+            return
+        }
+        val builder = Crashlytics.Builder()
+        Fabric.with(appContext, builder.build())
+        initialized = true
+
+        firebaseAnalytics = FirebaseAnalytics.getInstance(appContext)
     }
 
     //---------------------------------------------
@@ -76,10 +117,42 @@ object Steamclog {
         }
     }
 
+    fun track(@NonNls id: String, data: Map<String, Any?>) {
+        if (!::firebaseAnalytics.isInitialized) {
+            error("Analytics not initialized, please call SteamcLog.initializeAnalytics(appContext)")
+            return
+        }
+        if (!config.logLevel.analyticsEnabled) {
+            info("Skipped logging analytics event: $id ...")
+            return
+        }
+
+        val bundle = Bundle()
+        data.forEach { (key, value) ->
+            if (value !is Parcelable && value !is Serializable) {
+                warn("Failed to encode $value to bundle, must be either parcelable or serializable")
+                return
+            }
+
+            when (value) {
+                is Redactable -> {
+                    bundle.putString(key, value.getRedactedDescription())
+                }
+                is Serializable -> {
+                    bundle.putSerializable(key, value)
+                }
+                is Parcelable -> {
+                    bundle.putParcelable(key, value)
+                }
+            }
+        }
+        firebaseAnalytics.logEvent(id, bundle)
+    }
+
     //---------------------------------------------
     // Public util methods
     //---------------------------------------------
-    fun getLogFileContents(): String? {
+    suspend fun getLogFileContents(): String? {
         return externalLogFileTree.getLogFileContents()
     }
 

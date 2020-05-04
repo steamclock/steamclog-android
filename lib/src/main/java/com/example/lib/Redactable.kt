@@ -14,7 +14,7 @@ fun <T : Any> T.getRedactedDescription(): String {
     // If a class does not implement Redactable, this boolean allows us to control if we default
     // show or redact the properties of those classes. This enables us to turn on app-wide redaction
     // for all classes.
-    val redactedRequired = Steamclog.config.requireRedacted
+    val redactedRequired = SteamcLog.config.requireRedacted
 
     val clazz = this.javaClass.kotlin
     val clazzName = this.javaClass.simpleName
