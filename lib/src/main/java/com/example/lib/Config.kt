@@ -17,12 +17,7 @@ data class Config(
     /**
      * Destination logging levels
      */
-    var destinationLevels: DestinationLevels = DestinationLevels.Debug,
-
-    /**
-     * todo: Not sure if we want to do Crashlytics setup here?
-     */
-    var crashlyticsAppKey: String? = null,
+    val logLevel: LogLevelPreset = LogLevelPreset.Develop,
 
     /**
      * Location where the app wishes to store any log files generated
@@ -40,5 +35,4 @@ data class Config(
      * Indicates if objects being logged must implement the redacted interface.
      */
     var requireRedacted: Boolean = false
-
 )

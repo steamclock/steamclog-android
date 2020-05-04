@@ -3,11 +3,9 @@
     <string name="title_activity_main">MainActivity</string>
 
     <string-array name="levels">
-        <item>DEFAULT</item>
-        <item>VERBOSE</item>
-        <item>DEBUG</item>
-        <item>INFO</item>
-        <item>WARN</item>
-        <item>ERROR</item>
+        <item>FIREHOSE</item>
+        <item>DEVELOP</item>
+        <item>RELEASE</item>
+        <item>ReleaseAdvanced</item>
     </string-array>
 </resources>
