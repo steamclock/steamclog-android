@@ -23,6 +23,9 @@ buildscript {
 
         // Add the Crashlytics Gradle plugin.
         classpath 'com.google.firebase:firebase-crashlytics-gradle:2.0.0-beta03'
+
+        // Add the Android Maven plugin.
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
