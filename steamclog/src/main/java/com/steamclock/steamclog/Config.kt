@@ -16,11 +16,6 @@ data class Config(
     val fileWritePath: File? = null,
 
     /**
-     * todo: Should this be bundle name or something? Do we have access to that from inside the package?
-     */
-    var identifier: String = "steamclog",
-
-    /**
      * Destination logging levels
      */
     var logLevel: LogLevelPreset = LogLevelPreset.Develop,
@@ -36,11 +31,12 @@ data class Config(
     var requireRedacted: Boolean = false,
 
     /**
-     *
+     * Currently we cannot get the firebase instance from within the Steamclog library, so we
+     * require the calling application to provide it if analytics are desired.
      */
     var firebaseAnalytics: FirebaseAnalytics? = null
 ) {
-    constructor(writeFilePath: File) : this(writeFilePath, "steamclog")
+    constructor(writeFilePath: File) : this(writeFilePath, firebaseAnalytics = null)
 }
 
 

@@ -98,7 +98,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             // If file created or exists save logs
             getExternalFile()?.let { file -> file.appendText(logStr) }
         } catch (e: Exception) {
-            Log.e(SteamcLog.config.identifier, "HTMLFileTree failed to write into file: $e")
+            logToConsole("HTMLFileTree failed to write into file: $e")
         }
     }
 
@@ -117,7 +117,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             File(getExternalLogDirectory(), filename)
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
-            Log.e(SteamcLog.config.identifier,"HTMLFileTree failed to getExternalFile: $e")
+            logToConsole("HTMLFileTree failed to getExternalFile: $e")
             null
         }
     }
@@ -144,7 +144,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
 
         deleteThese.forEach { file ->
-            Log.d(SteamcLog.config.identifier, "Deleting file ${file.name}")
+            logToConsole("Deleting file ${file.name}")
             file.delete()
         }
     }
@@ -154,13 +154,13 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         val logBuilder = StringBuilder()
         getExternalLogDirectory()?.listFiles()?.forEach { file ->
             try {
-                Log.d(SteamcLog.config.identifier, "Reading file ${file.name}")
+                logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
                 // todo, if we end up with super large logs we will have to read differently.
                 logBuilder.append(file.readText() )
             } catch (e: Exception) {
                 // Do not call Timber here, or will will infinitely loop
-                Log.e(SteamcLog.config.identifier,"getLogFileContents failed to read file: $e")
+                logToConsole("getLogFileContents failed to read file: $e")
             }
         }
 
@@ -181,6 +181,14 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
  */
 internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Boolean {
     return (treeLevel != LogLevel.None) && (logPriority >= treeLevel.javaLevel)
+}
+
+/**
+ * Used mostly for Steamclog to report message using Log (not Timber), since using
+ * Timber may lead to infinite calls in the library.
+ */
+internal fun logToConsole(message: String) {
+    Log.v("steamclog", message)
 }
 
 /**
