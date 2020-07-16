@@ -75,6 +75,9 @@ class MainActivity : AppCompatActivity() {
         demo_text?.text = SteamcLog.getLogFileContents()
     }
 
+    private fun simulateCrash() {
+        throw RuntimeException("Test Crash") // Force a crash
+    }
 
     // Test logging objects
     class RedactableParent : Any(), Redactable {
