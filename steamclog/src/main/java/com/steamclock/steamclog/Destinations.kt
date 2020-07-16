@@ -96,9 +96,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
             // If file created or exists save logs
             getExternalFile()?.let { file ->
-                file.printWriter().use {
-                        writer -> writer.println(logStr)
-                }
+                file.appendText(logStr)
             }
         } catch (e: Exception) {
             Log.e(SteamcLog.config.identifier, "HTMLFileTree failed to write into file: $e")
@@ -108,12 +106,18 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private fun getExternalFile(): File? {
         val date = SimpleDateFormat(fileNameTimestamp, Locale.US).format(Date())
         val filename = "${fileNamePrefix}_${date}.${fileExt}"
-        val outputFilePath = SteamcLog.config.fileWritePath
+
         return try {
-            //File("${SteamcLog.config.fileWritePath}/testme.html")
-            val file = File(outputFilePath, filename)
-            Log.v(SteamcLog.config.identifier, file.absolutePath)
-            file
+            // Check for "logs" directory
+            val outputFileDirectory = File(SteamcLog.config.fileWritePath, "logs")
+            Log.v(SteamcLog.config.identifier,"Creating folder ${outputFileDirectory.absolutePath}")
+            outputFileDirectory.mkdirs()
+
+            // Get log file
+            val logFile = File(outputFileDirectory, filename)
+            Log.v(SteamcLog.config.identifier,"Creating logfile ${logFile.absolutePath}")
+            logFile.createNewFile()
+            logFile
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
             Log.e(SteamcLog.config.identifier,"HTMLFileTree failed to getExternalFile: $e")
@@ -170,7 +174,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     internal fun deleteLogFile() {
-        getExternalFile()?.delete()
+        //getExternalFile()?.delete()
     }
 }
 
