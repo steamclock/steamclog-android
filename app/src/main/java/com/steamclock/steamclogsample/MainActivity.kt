@@ -19,11 +19,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         title = "SteamClog Test"
 
-        // clog setup
-        clog.config = Config(logLevel = LogLevelPreset.Develop)
-        clog.config.fileWritePath = cacheDir
-        clog.deleteLogFile() // Reset for test
-
         // UI init
         demo_text.text = clog.toString()
         log_things.setOnClickListener { testAllLoggingLevels() }
@@ -38,15 +33,13 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                val logLevelPreset = when (position) {
+                clog.config.logLevel = when (position) {
                     0 -> LogLevelPreset.Firehose
                     1 -> LogLevelPreset.Develop
                     2 -> LogLevelPreset.Release
                     3 -> LogLevelPreset.ReleaseAdvanced
                     else -> LogLevelPreset.Firehose
                 }
-
-                clog.config = Config(logLevel = logLevelPreset)
             }
         }
     }
@@ -64,10 +57,10 @@ class MainActivity : AppCompatActivity() {
         clog.warn("Warn message")
         clog.warn("Warn message", RedactableParent())
 
-//        clog.error("Error message")
-//        clog.error("Error message", RedactableParent())
-//        clog.error("Error message", Throwable("OriginalNonFatalThrowable"))
-//        clog.error("Error message", Throwable("OriginalNonFatalThrowable"), RedactableParent())
+        clog.error("Error message")
+        clog.error("Error message", RedactableParent())
+        clog.error("Error message", Throwable("OriginalNonFatalThrowable"))
+        clog.error("Error message", Throwable("OriginalNonFatalThrowable"), RedactableParent())
 
         // These will crash app
 //            clog.fatal("Fatal message")

@@ -10,6 +10,6 @@ import com.steamclock.steamclog.clog
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initialize(this)
+        clog.initialize(this, externalCacheDir)
     }
 }

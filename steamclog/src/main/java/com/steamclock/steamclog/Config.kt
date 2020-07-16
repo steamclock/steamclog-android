@@ -8,6 +8,11 @@ import java.io.File
  * Created by shayla on 2020-01-23
  */
 data class Config(
+    /**
+     * Location where the app wishes to store any log files generated (ex. externalCacheDir)
+     * Required on creation and will not change.
+     */
+    val fileWritePath: File? = null,
 
     /**
      * todo: Should this be bundle name or something? Do we have access to that from inside the package?
@@ -17,14 +22,7 @@ data class Config(
     /**
      * Destination logging levels
      */
-    val logLevel: LogLevelPreset = LogLevelPreset.Develop,
-
-    /**
-     * Location where the app wishes to store any log files generated
-     * ex. externalCacheDir
-     * todo: Can we set this for the app, or should we allow this as a config.
-     */
-    var fileWritePath: File? = null,
+    var logLevel: LogLevelPreset = LogLevelPreset.Develop,
 
     /**
      *  Determines how long generated log files are kept for.
@@ -35,4 +33,8 @@ data class Config(
      * Indicates if objects being logged must implement the redacted interface.
      */
     var requireRedacted: Boolean = false
-)
+) {
+    constructor(writeFilePath: File) : this(writeFilePath, "steamclog")
+}
+
+

@@ -10,6 +10,7 @@ import android.os.Parcelable
 import com.google.firebase.analytics.FirebaseAnalytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
+import java.io.File
 import java.io.Serializable
 
 /**
@@ -40,11 +41,7 @@ object SteamcLog {
     // Public properties
     //---------------------------------------------
     var config: Config = Config()
-        set(value) {
-            field = value
-            // attempt to initialize fabric
-            appContext?.let { initialize(it) }
-        }
+        private set
 
     init {
         // initializing in order
@@ -59,15 +56,24 @@ object SteamcLog {
         updateTree(externalLogFileTree, true)
     }
 
-    fun initialize(appContext: Context) {
+    fun initialize(appContext: Context, fileWritePath: File?) {
         if (initialized) {
             return
         }
+
+        this.config = Config(fileWritePath)
         this.appContext = appContext
+
         if (config.logLevel.crashlytics == LogLevel.None) {
             warn("Fabric not initialized for log level ${config.logLevel}")
             return
         }
+
+        if (fileWritePath == null) {
+            warn("No write path given, cannot save log files")
+            return
+        }
+
         val builder = Crashlytics.Builder()
         Fabric.with(appContext, builder.build())
         initialized = true
