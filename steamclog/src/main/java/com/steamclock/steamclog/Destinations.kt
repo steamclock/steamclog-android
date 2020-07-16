@@ -59,7 +59,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
  * DebugTree gives us access to override createStackElementTag
  */
 internal class ExternalLogFileDestination : Timber.DebugTree() {
-    private var fileNamePrefix: String = "SteamLogger"
+    private var fileNamePrefix: String = "sclog"
     private var fileNameTimestamp = "yyyy_MM_dd"
     private var logTimestampFormat = "yyyy-MM-dd'.'HH:mm:ss.SSS"
     private var fileExt = "txt"
@@ -95,29 +95,25 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message"
 
             // If file created or exists save logs
-            getExternalFile()?.let { file ->
-                file.appendText(logStr)
-            }
+            getExternalFile()?.let { file -> file.appendText(logStr) }
         } catch (e: Exception) {
             Log.e(SteamcLog.config.identifier, "HTMLFileTree failed to write into file: $e")
         }
     }
 
+    private fun getExternalLogDirectory(): File? {
+        val logDirectory = File(SteamcLog.config.fileWritePath, "logs")
+        logDirectory.mkdirs()
+        return logDirectory
+    }
+
     private fun getExternalFile(): File? {
+
         val date = SimpleDateFormat(fileNameTimestamp, Locale.US).format(Date())
         val filename = "${fileNamePrefix}_${date}.${fileExt}"
 
         return try {
-            // Check for "logs" directory
-            val outputFileDirectory = File(SteamcLog.config.fileWritePath, "logs")
-            Log.v(SteamcLog.config.identifier,"Creating folder ${outputFileDirectory.absolutePath}")
-            outputFileDirectory.mkdirs()
-
-            // Get log file
-            val logFile = File(outputFileDirectory, filename)
-            Log.v(SteamcLog.config.identifier,"Creating logfile ${logFile.absolutePath}")
-            logFile.createNewFile()
-            logFile
+            File(getExternalLogDirectory(), filename)
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
             Log.e(SteamcLog.config.identifier,"HTMLFileTree failed to getExternalFile: $e")
@@ -137,13 +133,11 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 //        }
 //    }
 
-    private val outputFilePath = SteamcLog.config.fileWritePath
-
     private fun removeOldLogFiles() {
         val deleteThese = ArrayList<File>()
         val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
 
-        outputFilePath?.listFiles()?.forEach { file ->
+        getExternalLogDirectory()?.listFiles()?.forEach { file ->
             val now = Date().time
             if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
         }
@@ -156,9 +150,8 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     internal suspend fun getLogFileContents(): String? {
         removeOldLogFiles()
-        val outputFilePath = SteamcLog.config.fileWritePath
         val logBuilder = StringBuilder()
-        outputFilePath?.listFiles()?.forEach { file ->
+        getExternalLogDirectory()?.listFiles()?.forEach { file ->
             try {
                 Log.d(SteamcLog.config.identifier, "Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
@@ -174,7 +167,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     internal fun deleteLogFile() {
-        //getExternalFile()?.delete()
+        getExternalFile()?.delete()
     }
 }
 
