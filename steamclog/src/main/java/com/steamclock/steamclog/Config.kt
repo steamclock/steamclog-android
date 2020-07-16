@@ -1,5 +1,6 @@
 package com.steamclock.steamclog
 
+import com.google.firebase.analytics.FirebaseAnalytics
 import java.io.File
 
 /**
@@ -32,7 +33,12 @@ data class Config(
     /**
      * Indicates if objects being logged must implement the redacted interface.
      */
-    var requireRedacted: Boolean = false
+    var requireRedacted: Boolean = false,
+
+    /**
+     *
+     */
+    var firebaseAnalytics: FirebaseAnalytics? = null
 ) {
     constructor(writeFilePath: File) : this(writeFilePath, "steamclog")
 }

@@ -74,7 +74,30 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
+            <Button
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:id="@+id/non_fatal"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Send Non Fatal"
+                android:layout_gravity="center"/>
+
+            <Button
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:id="@+id/track_analytic"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Send Analytic Event"
+                android:layout_gravity="center"/>
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/demo_text"

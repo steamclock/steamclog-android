@@ -1,7 +1,7 @@
 package com.steamclock.steamclog
 
 import android.util.Log
-import com.crashlytics.android.Crashlytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import java.io.File
 import java.lang.StringBuilder
@@ -30,10 +30,11 @@ internal class CrashlyticsDestination : Timber.Tree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        Crashlytics.log(priority, tag, message)
-
-        // We trigger the crash report if we are logging a throwable (error)
-        throwable?.let { Crashlytics.logException(throwable) }
+        FirebaseCrashlytics.getInstance().apply {
+            log(message)
+            // We trigger the crash report if we are logging a throwable (error)
+            throwable?.let { recordException(throwable) }
+        }
     }
 }
 

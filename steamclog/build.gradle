@@ -2,6 +2,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+//apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
+// Cannot do this ^
+// Error Given: Applying the Firebase Crashlytics plugin to a library project is unsupported. It
+//   should only be applied to the application module of your project toenable automatic upload of
+//   obfuscation mapping files for your application.
+// For now app must set instance in config.
+
 android {
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
@@ -35,12 +42,11 @@ dependencies {
 
     implementation 'com.jakewharton.timber:timber:4.7.1'
 
-    // Recommended: Add the Firebase SDK for Google Analytics.
+    // Add the Firebase SDK for Google Analytics.
     implementation 'com.google.firebase:firebase-analytics:17.4.4'
 
     // Add the Firebase Crashlytics SDK.
     implementation 'com.google.firebase:firebase-crashlytics:17.1.1'
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-
 }

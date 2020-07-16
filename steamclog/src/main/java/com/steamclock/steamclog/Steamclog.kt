@@ -3,11 +3,8 @@
 package com.steamclock.steamclog
 
 import android.content.Context
-import com.crashlytics.android.Crashlytics
-import io.fabric.sdk.android.Fabric
 import android.os.Bundle
 import android.os.Parcelable
-import com.google.firebase.analytics.FirebaseAnalytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -32,7 +29,6 @@ object SteamcLog {
     private var crashlyticsTree: CrashlyticsDestination
     private var customDebugTree: ConsoleDestination
     private var externalLogFileTree: ExternalLogFileDestination
-    private lateinit var firebaseAnalytics: FirebaseAnalytics
 
     private var initialized: Boolean = false
     private var appContext: Context? = null
@@ -65,7 +61,7 @@ object SteamcLog {
         this.appContext = appContext
 
         if (config.logLevel.crashlytics == LogLevel.None) {
-            warn("Fabric not initialized for log level ${config.logLevel}")
+            warn("Crashlytics not initialized for log level ${config.logLevel}")
             return
         }
 
@@ -74,11 +70,7 @@ object SteamcLog {
             return
         }
 
-        val builder = Crashlytics.Builder()
-        Fabric.with(appContext, builder.build())
         initialized = true
-
-        firebaseAnalytics = FirebaseAnalytics.getInstance(appContext)
     }
 
     //---------------------------------------------
@@ -124,22 +116,18 @@ object SteamcLog {
     }
 
     fun track(@NonNls id: String, data: Map<String, Any?>) {
-        if (!::firebaseAnalytics.isInitialized) {
-            error("Analytics not initialized, please call SteamcLog.initializeAnalytics(appContext)")
+        if (!config.logLevel.analyticsEnabled) {
+            info("Anayltics not enabled ($id)")
             return
         }
-        if (!config.logLevel.analyticsEnabled) {
-            info("Skipped logging analytics event: $id ...")
+
+        if (config.firebaseAnalytics == null) {
+            info("Firebase analytics instance not set ($id)")
             return
         }
 
         val bundle = Bundle()
         data.forEach { (key, value) ->
-            if (value !is Parcelable && value !is Serializable) {
-                warn("Failed to encode $value to bundle, must be either parcelable or serializable")
-                return
-            }
-
             when (value) {
                 is Redactable -> {
                     bundle.putString(key, value.getRedactedDescription())
@@ -150,9 +138,15 @@ object SteamcLog {
                 is Parcelable -> {
                     bundle.putParcelable(key, value)
                 }
+                else -> {
+                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
+                    return
+                }
             }
         }
-        firebaseAnalytics.logEvent(id, bundle)
+
+        // Obtain the FirebaseAnalytics instance from the config.
+        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
     }
 
     //---------------------------------------------

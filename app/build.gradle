@@ -1,8 +1,9 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
+
+apply plugin: 'com.google.gms.google-services'  // Firebase
+apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
 
 android {
     compileSdkVersion 30
@@ -41,5 +42,7 @@ dependencies {
 
     implementation project(':steamclog')
 
-    implementation 'com.google.firebase:firebase-analytics:17.2.2'
+    //implementation 'com.google.firebase:firebase-analytics:17.2.2'
+
+    implementation 'com.google.firebase:firebase-analytics-ktx:17.4.4'
 }
