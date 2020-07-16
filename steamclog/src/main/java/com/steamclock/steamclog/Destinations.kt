@@ -122,18 +122,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
     }
 
-//    private fun getLogFiles(): List<String> {
-//        // todo may need to ask for some permissions?
-//        val filteredFiles = outputFilePath?.list { _, name -> name.contains(fileNamePrefix) }
-//        return filteredFiles?.sorted() ?: emptyList()
-//    }
-//
-//    fun deleteLogFiles() {
-//        for (file in getLogFiles()) {
-//            getExternalFile(file)?.delete()
-//        }
-//    }
-
     private fun removeOldLogFiles() {
         val deleteThese = ArrayList<File>()
         val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
