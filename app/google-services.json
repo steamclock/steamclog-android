@@ -1,34 +1,34 @@
 {
   "project_info": {
-    "project_number": "633846291932",
-    "firebase_url": "https://steamclog-samples.firebaseio.com",
-    "project_id": "steamclog-samples",
-    "storage_bucket": "steamclog-samples.appspot.com"
+    "project_number": "439241538623",
+    "firebase_url": "https://steamclog-sample-app.firebaseio.com",
+    "project_id": "steamclog-sample-app",
+    "storage_bucket": "steamclog-sample-app.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:633846291932:android:c3690b1468fb22535f4319",
+        "mobilesdk_app_id": "1:439241538623:android:21692276ce295ac6e60c8a",
         "android_client_info": {
-          "package_name": "com.example.steamclog"
+          "package_name": "com.steamclock.steamclogsample"
         }
       },
       "oauth_client": [
         {
-          "client_id": "633846291932-eoav1q021seqcntq99si4d6kr6g4opq8.apps.googleusercontent.com",
+          "client_id": "439241538623-5h0sdur9s23oc5blf4ju0iqlkiklf90j.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyB-5D4CeOnVeuPcTkrbyOnf6q2xj-1mHOo"
+          "current_key": "AIzaSyChD8iwQNpP7D35UGdYT7dyE7YWjq3jnNY"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "633846291932-eoav1q021seqcntq99si4d6kr6g4opq8.apps.googleusercontent.com",
+              "client_id": "439241538623-5h0sdur9s23oc5blf4ju0iqlkiklf90j.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
