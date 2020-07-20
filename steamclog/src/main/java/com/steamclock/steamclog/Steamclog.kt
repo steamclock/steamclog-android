@@ -2,11 +2,10 @@
 
 package com.steamclock.steamclog
 
-import android.content.Context
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -145,6 +144,26 @@ object SteamcLog {
     //---------------------------------------------
     // Public util methods
     //---------------------------------------------
+    /**
+     * This should be a fairly obscure ID, not something that could be immediately traced to a
+     * specific individual (ie. not an email address)
+     */
+    fun setUserId(id: String) {
+        // Write it to the log
+        Timber.i("Setting user id: $id")
+
+        // Add user id to all subsequent crash reports
+        FirebaseCrashlytics.getInstance().apply { setUserId(id) }
+    }
+
+    fun setCustomKey(key: String, value: String) {
+        // Write it to the log
+        Timber.i("Set key/value pair: $key/$value")
+
+        // Add it as a custom key to all subsequent crash reports
+        FirebaseCrashlytics.getInstance().apply { setCustomKey(key, value) }
+    }
+
     suspend fun getLogFileContents(): String? {
         return externalLogFileTree.getLogFileContents()
     }
@@ -161,10 +180,10 @@ object SteamcLog {
     // Private methods
     //---------------------------------------------
     private fun addObjToMessage(@NonNls message: String, obj: Any?): String {
-        return if (obj == null) {
-            message
-        } else {
-            "$message : ${obj.getRedactedDescription()}"
+        return when(obj) {
+            null -> message
+            is Throwable -> "$message ${obj.message?.let { throwMsg ->" : $throwMsg"}}"
+            else -> "$message : ${obj.getRedactedDescription()}"
         }
     }
 
