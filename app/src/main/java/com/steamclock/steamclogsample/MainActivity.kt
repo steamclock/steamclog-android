@@ -50,8 +50,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testAllLoggingLevels() {
-        simulateCrash()
-
         clog.verbose("Verbose message")
         clog.verbose("Verbose message", RedactableParent())
 

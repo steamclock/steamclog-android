@@ -24,6 +24,23 @@ import java.util.*
  * CrashlyticsDestination
  */
 internal class CrashlyticsDestination : Timber.Tree() {
+    /**
+     * Creates a placeholder exception that can be used to report non-fatals that do not have an
+     * underlying Throwable error associated with them. This class uses an abbreviatedStackTrace
+     * so that the non-fatal will be reported at the line of code that called the steamclog.error
+     * method.
+     */
+    class NonFatalException(message: String, private val abbreviatedStackTrace: Array<StackTraceElement>): Exception(message) {
+        override fun getStackTrace(): Array<StackTraceElement> { return abbreviatedStackTrace }
+        companion object {
+            fun with(message: String): NonFatalException {
+                val stackTrace = Thread.currentThread().stackTrace
+                val numToRemove = 10 // Move down the stack past Timber and Steamclog calls.
+                val abbreviatedStackTrace = stackTrace.takeLast(stackTrace.size - numToRemove).toTypedArray()
+                return NonFatalException(message, abbreviatedStackTrace)
+            }
+        }
+    }
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.crashlytics, priority)
@@ -32,8 +49,11 @@ internal class CrashlyticsDestination : Timber.Tree() {
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         FirebaseCrashlytics.getInstance().apply {
             log(message)
-            // We trigger the crash report if we are logging a throwable (error)
-            throwable?.let { recordException(throwable) }
+            if (priority == Log.ERROR) {
+                // If no throwable associated with the error log, create a generic NonFatalException.
+                val throwMe = throwable ?: NonFatalException.with(message)
+                recordException(throwMe)
+            }
         }
     }
 }

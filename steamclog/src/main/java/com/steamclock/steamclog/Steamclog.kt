@@ -2,9 +2,10 @@
 
 package com.steamclock.steamclog
 
-import android.content.Context
 import android.os.Bundle
 import android.os.Parcelable
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -30,9 +31,6 @@ object SteamcLog {
     private var customDebugTree: ConsoleDestination
     private var externalLogFileTree: ExternalLogFileDestination
 
-    private var initialized: Boolean = false
-    private var appContext: Context? = null
-
     //---------------------------------------------
     // Public properties
     //---------------------------------------------
@@ -49,28 +47,22 @@ object SteamcLog {
         // disable that tree, but we do not uproot it.
         updateTree(customDebugTree, true)
         updateTree(crashlyticsTree, true)
-        updateTree(externalLogFileTree, true)
+
+        // fileWritePath required before we can start writing to ExternalLogFileDestination
+        // FirebaseAnalytics instance required before we can start tracking analytics
     }
 
-    fun initialize(appContext: Context, fileWritePath: File?) {
-        if (initialized) {
-            return
+    fun initWith(fileWritePath: File? = null, firebaseAnalytics: FirebaseAnalytics? = null) {
+        fileWritePath?.let {
+            this.config = Config(fileWritePath)
+            updateTree(externalLogFileTree, true)
+            info("Enabled External LogFile")
         }
 
-        this.config = Config(fileWritePath)
-        this.appContext = appContext
-
-        if (config.logLevel.crashlytics == LogLevel.None) {
-            warn("Crashlytics not initialized for log level ${config.logLevel}")
-            return
+        firebaseAnalytics?.let {
+            clog.config.firebaseAnalytics = firebaseAnalytics
+            info("Enabled Analytics Reporting")
         }
-
-        if (fileWritePath == null) {
-            warn("No write path given, cannot save log files")
-            return
-        }
-
-        initialized = true
     }
 
     //---------------------------------------------
@@ -152,6 +144,26 @@ object SteamcLog {
     //---------------------------------------------
     // Public util methods
     //---------------------------------------------
+    /**
+     * This should be a fairly obscure ID, not something that could be immediately traced to a
+     * specific individual (ie. not an email address)
+     */
+    fun setUserId(id: String) {
+        // Write it to the log
+        Timber.i("Setting user id: $id")
+
+        // Add user id to all subsequent crash reports
+        FirebaseCrashlytics.getInstance().apply { setUserId(id) }
+    }
+
+    fun setCustomKey(key: String, value: String) {
+        // Write it to the log
+        Timber.i("Set key/value pair: $key/$value")
+
+        // Add it as a custom key to all subsequent crash reports
+        FirebaseCrashlytics.getInstance().apply { setCustomKey(key, value) }
+    }
+
     suspend fun getLogFileContents(): String? {
         return externalLogFileTree.getLogFileContents()
     }
@@ -168,10 +180,10 @@ object SteamcLog {
     // Private methods
     //---------------------------------------------
     private fun addObjToMessage(@NonNls message: String, obj: Any?): String {
-        return if (obj == null) {
-            message
-        } else {
-            "$message : ${obj.getRedactedDescription()}"
+        return when(obj) {
+            null -> message
+            is Throwable -> "$message ${obj.message?.let { throwMsg ->" : $throwMsg"}}"
+            else -> "$message : ${obj.getRedactedDescription()}"
         }
     }
 

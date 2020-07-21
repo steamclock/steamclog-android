@@ -12,7 +12,6 @@ import com.steamclock.steamclog.clog
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initialize(this, externalCacheDir)
-        clog.config.firebaseAnalytics = Firebase.analytics
+        clog.initWith(fileWritePath = externalCacheDir, firebaseAnalytics = Firebase.analytics)
     }
 }
