@@ -5,6 +5,8 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'com.google.gms.google-services'  // Firebase
 apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
 
+apply plugin: 'io.sentry.android.gradle' // Sentry Proguard/R8 mappings
+
 repositories {
     jcenter()
 }
@@ -35,8 +37,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

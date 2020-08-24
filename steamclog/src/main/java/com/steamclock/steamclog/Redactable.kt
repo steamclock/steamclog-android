@@ -50,10 +50,14 @@ fun <T : Any> T.getRedactedDescription(): String {
  * Redactable
  *
  * Created by shayla on 2020-01-23
+ *
+ * If application using Proguard or R8 to do code obfuscation then the following must be added to the
+ * proguard-rules.pro file to enable the redaction to correctly work with the safeProperties set:
+ *   -keep class * extends com.steamclock.steamclog.Redactable { *; }
  */
 
 interface Redactable {
-    // Opt-in "whitelist" of all property names that are considered "safe" to print.
+    // Opt-in set of all property names that are considered "safe" to print.
     val safeProperties: Set<String>
 
     // Commenting out for now, I think our Any() version here is better.

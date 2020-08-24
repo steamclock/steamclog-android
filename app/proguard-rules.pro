@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Required if you want to use Steamclog Redactable classes, and Proguard/R8 to obsfucate code.
+-keep class * extends com.steamclock.steamclog.Redactable { *; }
