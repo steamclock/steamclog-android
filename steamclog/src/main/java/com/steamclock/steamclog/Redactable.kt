@@ -59,23 +59,4 @@ fun <T : Any> T.getRedactedDescription(): String {
 interface Redactable {
     // Opt-in set of all property names that are considered "safe" to print.
     val safeProperties: Set<String>
-
-    // Commenting out for now, I think our Any() version here is better.
-//    fun getDebugDescription(): String {
-//        val clazz = this.javaClass.kotlin
-//        val clazzName = this.javaClass.simpleName
-//        val params = clazz.declaredMemberProperties
-//            .filter { it.name != "safeProperties"}
-//            .map { property ->
-//                // Check if property is a class that also requires its own redaction.
-//                val redactable = property.get(this) as? Redactable
-//                when {
-//                    redactable != null -> "${property.name}=${redactable.getDebugDescription()}"
-//                    safeProperties.contains(property.name) -> "${property.name}=${property.get(this)}"
-//                    else -> "${property.name}=<redacted>"
-//                }
-//            }
-//
-//        return "${clazzName}(${params.joinToString(", ")})"
-//    }
 }
