@@ -3,7 +3,6 @@ package com.steamclock.steamclog
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.sentry.core.Sentry
-//import io.sentry.core.Sentry
 import timber.log.Timber
 import java.io.File
 import java.lang.StringBuilder
