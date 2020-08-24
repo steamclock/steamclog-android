@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+//apply plugin: 'io.sentry.android.gradle'
 
 //apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
 // Cannot do this ^
@@ -22,6 +23,13 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
+
+//    // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
+//    // Added for Sentry support
+//    compileOptions {
+//        sourceCompatibility = JavaVersion.VERSION_1_8
+//        targetCompatibility = JavaVersion.VERSION_1_8
+//    }
 
     buildTypes {
         release {
@@ -47,6 +55,9 @@ dependencies {
 
     // Add the Firebase Crashlytics SDK.
     implementation 'com.google.firebase:firebase-crashlytics:17.1.1'
+
+    // https://github.com/getsentry/sentry-android/releases
+    implementation 'io.sentry:sentry-android:2.3.0'
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 }

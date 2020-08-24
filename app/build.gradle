@@ -5,9 +5,24 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'com.google.gms.google-services'  // Firebase
 apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
 
+repositories {
+    jcenter()
+}
+
 android {
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
+
+    // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
+    // Added for Sentry support
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 
     defaultConfig {
         applicationId "com.steamclock.steamclogsample"
@@ -25,6 +40,31 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+// Defaults taken directly from https://docs.sentry.io/platforms/android/
+sentry {
+    // Disables or enables the automatic configuration of ProGuard
+    // for Sentry.  This injects a default config for ProGuard so
+    // you don't need to do it manually.
+    autoProguardConfig true
+
+    // Enables or disables the automatic upload of mapping files
+    // during a build.  If you disable this, you'll need to manually
+    // upload the mapping files with sentry-cli when you do a release.
+    autoUpload true
+
+    // Disables or enables the automatic configuration of Native Symbols
+    // for Sentry. This executes sentry-cli automatically so
+    // you don't need to do it manually.
+    // Default is disabled.
+    uploadNativeSymbols false
+
+    // Does or doesn't include the source code of native code for Sentry.
+    // This executes sentry-cli with the --include-sources param. automatically so
+    // you don't need to do it manually.
+    // Default is disabled.
+    includeNativeSources false
 }
 
 dependencies {
@@ -45,4 +85,7 @@ dependencies {
     //implementation 'com.google.firebase:firebase-analytics:17.2.2'
 
     implementation 'com.google.firebase:firebase-analytics-ktx:17.4.4'
+
+    // https://github.com/getsentry/sentry-android/releases
+    implementation 'io.sentry:sentry-android:2.3.0'
 }

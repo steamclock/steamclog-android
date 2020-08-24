@@ -2,6 +2,8 @@ package com.steamclock.steamclog
 
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import io.sentry.core.Sentry
+//import io.sentry.core.Sentry
 import timber.log.Timber
 import java.io.File
 import java.lang.StringBuilder
@@ -54,6 +56,46 @@ internal class CrashlyticsDestination : Timber.Tree() {
                 val throwMe = throwable ?: NonFatalException.with(message)
                 recordException(throwMe)
             }
+        }
+    }
+}
+
+/**
+ * SentryDestination
+ */
+internal class SentryDestination : Timber.Tree() {
+    /**
+     * Creates a placeholder exception that can be used to report non-fatals that do not have an
+     * underlying Throwable error associated with them. This class uses an abbreviatedStackTrace
+     * so that the non-fatal will be reported at the line of code that called the steamclog.error
+     * method.
+     */
+    class NonFatalException(message: String, private val abbreviatedStackTrace: Array<StackTraceElement>): Exception(message) {
+        override fun getStackTrace(): Array<StackTraceElement> { return abbreviatedStackTrace }
+        companion object {
+            fun with(message: String): NonFatalException {
+                val stackTrace = Thread.currentThread().stackTrace
+                val numToRemove = 10 // Move down the stack past Timber and Steamclog calls.
+                val abbreviatedStackTrace = stackTrace.takeLast(stackTrace.size - numToRemove).toTypedArray()
+                return NonFatalException(message, abbreviatedStackTrace)
+            }
+        }
+    }
+
+    override fun isLoggable(priority: Int): Boolean {
+        return isLoggable(SteamcLog.config.logLevel.sentry, priority)
+    }
+
+    override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
+        /*
+          From Sentry docs: By default, the last 100 breadcrumbs are kept and attached to next event.
+        */
+        Sentry.addBreadcrumb(message)
+
+        if (priority == Log.ERROR) {
+            // If no throwable associated with the error log, create a generic NonFatalException.
+            val throwMe = throwable ?: NonFatalException.with(message)
+            Sentry.captureException(throwMe)
         }
     }
 }

@@ -6,5 +6,6 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 ## UNRELEASED
 - Added changelog! (#12)
 - Added PR template (#21)
+- Added support for Sentry (#24)
 
 ---
