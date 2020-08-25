@@ -5,14 +5,16 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.ktx.Firebase
-import com.steamclock.steamclog.*
+import com.steamclock.steamclog.LogLevelPreset
+import com.steamclock.steamclog.Redactable
+import com.steamclock.steamclog.SteamcLog
+import com.steamclock.steamclog.clog
+import io.sentry.core.Sentry
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+
 
 class MainActivity : AppCompatActivity() {
 

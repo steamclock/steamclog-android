@@ -4,7 +4,9 @@ buildscript {
     repositories {
         google()
         jcenter()
+        mavenCentral()
     }
+
     dependencies {
         classpath "com.android.tools.build:gradle:4.0.0"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -16,6 +18,10 @@ buildscript {
         classpath 'com.google.gms:google-services:4.3.3'
 
         classpath 'com.google.firebase:firebase-crashlytics-gradle:2.2.0'
+
+        // For Sentry + Proguard/R8 support
+        // https://github.com/getsentry/sentry-android-gradle-plugin/releases
+        classpath 'io.sentry:sentry-android-gradle-plugin:1.7.35'
     }
 }
 

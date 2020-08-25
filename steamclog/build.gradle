@@ -2,12 +2,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+//apply plugin: 'io.sentry.android.gradle'
 //apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
-// Cannot do this ^
-// Error Given: Applying the Firebase Crashlytics plugin to a library project is unsupported. It
-//   should only be applied to the application module of your project toenable automatic upload of
+// Cannot do these ^
+// Error Given: Applying these plugins to a library project is unsupported. It
+//   should only be applied to the application module of your project to enable automatic upload of
 //   obfuscation mapping files for your application.
-// For now app must set instance in config.
 
 android {
     compileSdkVersion 30
@@ -47,6 +47,10 @@ dependencies {
 
     // Add the Firebase Crashlytics SDK.
     implementation 'com.google.firebase:firebase-crashlytics:17.1.1'
+
+    // https://github.com/getsentry/sentry-android/releases
+    // Required so that we can reference the Sentry class
+    implementation 'io.sentry:sentry-android:2.3.0'
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 }

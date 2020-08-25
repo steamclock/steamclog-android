@@ -2,6 +2,7 @@ package com.steamclock.steamclog
 
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import io.sentry.core.Sentry
 import timber.log.Timber
 import java.io.File
 import java.lang.StringBuilder
@@ -53,6 +54,36 @@ internal class CrashlyticsDestination : Timber.Tree() {
                 // If no throwable associated with the error log, create a generic NonFatalException.
                 val throwMe = throwable ?: NonFatalException.with(message)
                 recordException(throwMe)
+            }
+        }
+    }
+}
+
+/**
+ * SentryDestination
+ */
+internal class SentryDestination : Timber.Tree() {
+    override fun isLoggable(priority: Int): Boolean {
+        return isLoggable(SteamcLog.config.logLevel.sentry, priority)
+    }
+
+    /**
+     * From Sentry docs: By default, the last 100 breadcrumbs are kept and attached to next event.
+     */
+    override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
+        when {
+            priority == Log.ERROR && throwable != null -> {
+                // If given a throwable, add message as breadcrumb, and log exception
+                Sentry.addBreadcrumb(message)
+                Sentry.captureException(throwable)
+            }
+            priority == Log.ERROR -> {
+                // If no throwable given, log error as message
+                Sentry.captureMessage(message)
+            }
+            else -> {
+                // Not an error, add message as breadcrumb
+                Sentry.addBreadcrumb(message)
             }
         }
     }

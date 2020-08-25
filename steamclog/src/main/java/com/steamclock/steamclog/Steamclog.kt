@@ -28,6 +28,7 @@ object SteamcLog {
     //---------------------------------------------
     @Suppress("JoinDeclarationAndAssignment")
     private var crashlyticsTree: CrashlyticsDestination
+    private var sentryTree: SentryDestination
     private var customDebugTree: ConsoleDestination
     private var externalLogFileTree: ExternalLogFileDestination
 
@@ -38,17 +39,21 @@ object SteamcLog {
         private set
 
     init {
-        // initializing in order
-        crashlyticsTree = CrashlyticsDestination()
-        customDebugTree = ConsoleDestination()
-        externalLogFileTree = ExternalLogFileDestination()
-
         // By default plant all trees; setting their level to LogLevel.None will effectively
         // disable that tree, but we do not uproot it.
+
+        customDebugTree = ConsoleDestination()
         updateTree(customDebugTree, true)
+
+        crashlyticsTree = CrashlyticsDestination()
         updateTree(crashlyticsTree, true)
 
-        // fileWritePath required before we can start writing to ExternalLogFileDestination
+        sentryTree = SentryDestination()
+        updateTree(sentryTree, true)
+
+        externalLogFileTree = ExternalLogFileDestination()
+        // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
+
         // FirebaseAnalytics instance required before we can start tracking analytics
     }
 
