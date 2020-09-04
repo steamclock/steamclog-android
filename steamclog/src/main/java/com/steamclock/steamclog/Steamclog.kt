@@ -101,17 +101,6 @@ object SteamcLog {
     fun fatal(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Fatal, message, obj)
     fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Fatal, message, throwable, obj)
 
-    // Mapping onto the corresponding Timber calls.
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String) = Timber.log(logLevel.javaLevel, message)
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String, throwable: Throwable?, obj: Any?) = Timber.log(logLevel.javaLevel, throwable, addObjToMessage(message, obj))
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String, obj: Any?) {
-        if (obj is Throwable) {
-            Timber.log(logLevel.javaLevel, obj, message)
-        } else {
-            Timber.log(logLevel.javaLevel, addObjToMessage(message, obj))
-        }
-    }
-
     fun track(@NonNls id: String, data: Map<String, Any?>) {
         if (!config.logLevel.analyticsEnabled) {
             info("Anayltics not enabled ($id)")
@@ -144,6 +133,29 @@ object SteamcLog {
 
         // Obtain the FirebaseAnalytics instance from the config.
         config.firebaseAnalytics?.apply { logEvent(id, bundle) }
+    }
+
+    //---------------------------------------------
+    // Mapping onto the corresponding Timber calls.
+    //---------------------------------------------
+    private fun logTimber(logLevel: LogLevel, @NonNls message: String) {
+        Timber.log(logLevel.javaLevel, message)
+    }
+
+    private fun logTimber(logLevel: LogLevel, @NonNls message: String, throwable: Throwable?, obj: Any?) {
+        Timber.log(logLevel.javaLevel, throwable, addObjToMessage(message, obj))
+    }
+    private fun logTimber(logLevel: LogLevel, @NonNls message: String, obj: Any?) {
+        if (obj is Throwable) {
+            Timber.log(logLevel.javaLevel, obj, message)
+        } else {
+            Timber.log(logLevel.javaLevel, addObjToMessage(message, obj))
+        }
+    }
+
+    internal fun shouldSuppressThrowable(throwable: Throwable?): Boolean {
+        if (throwable == null) return false
+        return config.suppressRemoteThrowableNames.contains(throwable::class.java.name)
     }
 
     //---------------------------------------------

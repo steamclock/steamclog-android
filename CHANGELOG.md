@@ -7,5 +7,6 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Added changelog! (#12)
 - Added PR template (#21)
 - Added support for Sentry (#24)
+- Added support to suppress specific Throwables (#22)
 
 ---

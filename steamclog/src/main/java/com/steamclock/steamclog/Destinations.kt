@@ -50,6 +50,7 @@ internal class CrashlyticsDestination : Timber.Tree() {
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         FirebaseCrashlytics.getInstance().apply {
             log(message)
+            if (SteamcLog.shouldSuppressThrowable(throwable)) return@apply
             if (priority == Log.ERROR) {
                 // If no throwable associated with the error log, create a generic NonFatalException.
                 val throwMe = throwable ?: NonFatalException.with(message)
@@ -73,6 +74,7 @@ internal class SentryDestination : Timber.Tree() {
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         when {
             priority == Log.ERROR && throwable != null -> {
+                if (SteamcLog.shouldSuppressThrowable(throwable)) return
                 // If given a throwable, add message as breadcrumb, and log exception
                 Sentry.addBreadcrumb(message)
                 Sentry.captureException(throwable)

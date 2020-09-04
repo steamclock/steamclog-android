@@ -34,7 +34,14 @@ data class Config(
      * Currently we cannot get the firebase instance from within the Steamclog library, so we
      * require the calling application to provide it if analytics are desired.
      */
-    var firebaseAnalytics: FirebaseAnalytics? = null
+    var firebaseAnalytics: FirebaseAnalytics? = null,
+
+    /**
+     * Set of Throwables that we do not want to send as errors.
+     * This is most useful to help filter out errors regarding network connection issues.
+     */
+    var suppressRemoteThrowableNames: HashSet<String> = hashSetOf()
+
 ) {
     constructor(writeFilePath: File) : this(writeFilePath, firebaseAnalytics = null)
 }
