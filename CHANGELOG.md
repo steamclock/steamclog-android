@@ -8,5 +8,6 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Added PR template (#21)
 - Added support for Sentry (#24)
 - Added readme (#16)
+- Attempting to use Jitpack (#2)
 
 ---
