@@ -9,5 +9,6 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Added support for Sentry (#24)
 - Added readme (#16)
 - Attempting to use Jitpack (#2)
+- Created initWith method that omits FirebaseAnalytics instance (#31)
 
 ---

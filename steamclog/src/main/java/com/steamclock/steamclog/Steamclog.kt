@@ -70,6 +70,14 @@ object SteamcLog {
         }
     }
 
+    /** 
+     * initWith omitting FirebaseAnalytics instance, for applications that
+     * do not wish to use FirebaseAnalytics.
+     */
+    fun initWith(fileWritePath: File? = null) {
+        initWith(fileWritePath, null)
+    }
+
     //---------------------------------------------
     // Public Logging <level> calls
     //
