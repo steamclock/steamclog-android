@@ -5,7 +5,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 
 ## Unreleased 
 - Updated default LogLevelPresets (#33)
-
+- Changed releaseAdvanced LogLevelPresets (#11)
 
 ---
 
