@@ -31,7 +31,7 @@ sealed class LogLevelPreset {
         get() = when(this) {
             is Firehose -> LogLevel.None
             is Develop -> LogLevel.None
-            is ReleaseAdvanced -> LogLevel.Warn
+            is ReleaseAdvanced -> LogLevel.Info
             is Release -> LogLevel.Warn
         }
 
