@@ -33,6 +33,17 @@ object SteamcLog {
     private var externalLogFileTree: ExternalLogFileDestination
 
     //---------------------------------------------
+    // OverridesInterface
+    //---------------------------------------------
+    interface Suppressible {
+        /**
+         * Gives calling application last minute chance to suppress some Throwables from being
+         * logged as non-fatal errors.
+         */
+        fun suppressRemoteError(throwable: Throwable?): Boolean
+    }
+
+    //---------------------------------------------
     // Public properties
     //---------------------------------------------
     var config: Config = Config()

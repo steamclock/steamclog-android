@@ -80,6 +80,9 @@ class MainActivity : AppCompatActivity() {
         clog.error("Error message", RedactableParent())
         clog.error("Error message", Throwable("OriginalNonFatalThrowable"))
         clog.error("Error message", Throwable("OriginalNonFatalThrowable"), RedactableParent())
+
+        // Non-fatal should *not* be generated for this
+        clog.error("Shouldn't create non-fatal", App.DoNotLogAsNonFatal())
     }
 
     private fun testFatalCrash() {

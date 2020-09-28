@@ -34,7 +34,12 @@ data class Config(
      * Currently we cannot get the firebase instance from within the Steamclog library, so we
      * require the calling application to provide it if analytics are desired.
      */
-    var firebaseAnalytics: FirebaseAnalytics? = null
+    var firebaseAnalytics: FirebaseAnalytics? = null,
+
+    /**
+     *
+     */
+    var suppressible: SteamcLog.Suppressible? = null
 ) {
     constructor(writeFilePath: File) : this(writeFilePath, firebaseAnalytics = null)
 
@@ -44,7 +49,8 @@ data class Config(
                 "\n  fileWritePath = $fileWritePath," +
                 "\n  firebaseAnalytics = ${firebaseAnalytics}," +
                 "\n  keepLogsForDays = $keepLogsForDays," +
-                "\n  requireRedacted = $requireRedacted)"
+                "\n  requireRedacted = $requireRedacted)," +
+                "\n  suppressible = ${if (suppressible == null) "No" else "Yes"})"
     }
 }
 
