@@ -61,13 +61,13 @@ object SteamcLog {
         fileWritePath?.let {
             this.config = Config(fileWritePath)
             updateTree(externalLogFileTree, true)
-            info("Enabled External LogFile")
         }
 
         firebaseAnalytics?.let {
             clog.config.firebaseAnalytics = firebaseAnalytics
-            info("Enabled Analytics Reporting")
         }
+
+        info("Steamclog initialized:\n$this")
     }
 
     /** 

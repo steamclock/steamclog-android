@@ -18,7 +18,7 @@ data class Config(
     /**
      * Destination logging levels
      */
-    var logLevel: LogLevelPreset = LogLevelPreset.Develop,
+    var logLevel: LogLevelPreset = if (BuildConfig.DEBUG) LogLevelPreset.Firehose else LogLevelPreset.Release,
 
     /**
      *  Determines how long generated log files are kept for.
@@ -37,6 +37,15 @@ data class Config(
     var firebaseAnalytics: FirebaseAnalytics? = null
 ) {
     constructor(writeFilePath: File) : this(writeFilePath, firebaseAnalytics = null)
+
+    override fun toString(): String {
+        return "Config(" +
+                "\n  logLevel = $logLevel," +
+                "\n  fileWritePath = $fileWritePath," +
+                "\n  firebaseAnalytics = ${firebaseAnalytics}," +
+                "\n  keepLogsForDays = $keepLogsForDays," +
+                "\n  requireRedacted = $requireRedacted)"
+    }
 }
 
 
