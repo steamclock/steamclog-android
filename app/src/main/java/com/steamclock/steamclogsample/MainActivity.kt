@@ -31,6 +31,14 @@ class MainActivity : AppCompatActivity() {
         non_fatal.setOnClickListener { testNonFatal() }
         track_analytic.setOnClickListener { testTrackAnalytic() }
 
+        level_selector.setSelection(when (clog.config.logLevel) {
+            LogLevelPreset.Firehose -> 0
+            LogLevelPreset.Develop -> 1
+            LogLevelPreset.Release -> 2
+            LogLevelPreset.ReleaseAdvanced -> 3
+            else -> 0
+        })
+
         level_selector.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
 

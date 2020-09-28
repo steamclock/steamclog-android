@@ -19,6 +19,14 @@ sealed class LogLevelPreset {
     /// Disk: none, system: none, remote: warn
     object Release: LogLevelPreset()
 
+    val title: String
+        get() = when(this) {
+            is Firehose -> "Firehose"
+            is Develop -> "Develop"
+            is ReleaseAdvanced -> "ReleaseAdvanced"
+            is Release -> "Release"
+        }
+
     val global: LogLevel
         get() = when(this) {
             is Firehose -> LogLevel.Info
@@ -68,6 +76,6 @@ sealed class LogLevelPreset {
         }
 
     override fun toString(): String {
-        return "DestinationLevels(global=$global, console=$console, file=$file, crashlytics=$crashlytics, sentry=$sentry)"
+        return "$title(global=$global, console=$console, file=$file, crashlytics=$crashlytics, sentry=$sentry)"
     }
 }
