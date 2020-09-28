@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
+- Changed releaseAdvanced LogLevelPresets (#11)
+
+
 ## UNRELEASED
 - Added changelog! (#12)
 - Added PR template (#21)
