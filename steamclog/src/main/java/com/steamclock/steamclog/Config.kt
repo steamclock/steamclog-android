@@ -10,6 +10,13 @@ import java.io.File
  */
 data class Config(
     /**
+     * BuildConfig is tied to the module (ie. the Steamclog library module), so we cannot use it to determine
+     * a default logLevel as this will always be set to false when the library is being imported via JitPack.
+     * As such this info must be given to us by the application.
+     */
+    val isDebug: Boolean = false,
+
+    /**
      * Location where the app wishes to store any log files generated (ex. externalCacheDir)
      * Required on creation and will not change.
      */
@@ -18,7 +25,7 @@ data class Config(
     /**
      * Destination logging levels
      */
-    var logLevel: LogLevelPreset = if (BuildConfig.DEBUG) LogLevelPreset.Firehose else LogLevelPreset.Release,
+    var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Firehose else LogLevelPreset.Release,
 
     /**
      *  Determines how long generated log files are kept for.
@@ -36,7 +43,7 @@ data class Config(
      */
     var firebaseAnalytics: FirebaseAnalytics? = null
 ) {
-    constructor(writeFilePath: File) : this(writeFilePath, firebaseAnalytics = null)
+    constructor(isDebug: Boolean, writeFilePath: File) : this(isDebug, writeFilePath, firebaseAnalytics = null)
 
     override fun toString(): String {
         return "Config(" +

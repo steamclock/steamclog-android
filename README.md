@@ -92,7 +92,7 @@ The `Steamclog.initWith` method can be used to enable external logging; this met
 
 To enable Steamclog to write to the device, you must specify where the files should be stored, this is most easily done by passing along the application's `externalCacheDir` or `cacheDir` references.
 ```
-clog.initWith(fileWritePath = externalCacheDir)
+clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
 ```
  * See https://developer.android.com/training/data-storage for details on the pros and cons of each.
  
@@ -121,12 +121,12 @@ Due to current limitations on how the firebase plugin is applied to projects, yo
 The `Steamclog.initWith` method can be used to enable firebase analytics; this method only needs to be called once, and can be done in your Application object's `onCreate` method. If your application has setup Firebase Analytics correctly, the `Firebase.analytics` object should be available to be passed to the initWith method.
 
 ```
-clog.initWith(firebaseAnalytics = Firebase.analytics)
+clog.initWith(BuildConfig.DEBUG, firebaseAnalytics = Firebase.analytics)
 ```
 
 Both logging and analytics can be initialized at the same time:
 ```
-clog.initWith(fileWritePath = externalCacheDir, firebaseAnalytics = Firebase.analytics)
+clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir, firebaseAnalytics = Firebase.analytics)
 ```
 
 ### Configuration
