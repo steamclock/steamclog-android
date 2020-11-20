@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Unreleased 
+- Fixed default LogLevelPresets, app must now include debug info (#33)
+- Fixed crash on Pixel 4 devices running Android 11 (updated Sentry)
 
 ---
 

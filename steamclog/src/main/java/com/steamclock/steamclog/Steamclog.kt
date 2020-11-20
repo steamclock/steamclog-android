@@ -57,9 +57,9 @@ object SteamcLog {
         // FirebaseAnalytics instance required before we can start tracking analytics
     }
 
-    fun initWith(fileWritePath: File? = null, firebaseAnalytics: FirebaseAnalytics? = null) {
+    fun initWith(isDebug: Boolean, fileWritePath: File? = null, firebaseAnalytics: FirebaseAnalytics? = null) {
         fileWritePath?.let {
-            this.config = Config(fileWritePath)
+            this.config = Config(isDebug, fileWritePath)
             updateTree(externalLogFileTree, true)
         }
 
@@ -74,8 +74,8 @@ object SteamcLog {
      * initWith omitting FirebaseAnalytics instance, for applications that
      * do not wish to use FirebaseAnalytics.
      */
-    fun initWith(fileWritePath: File? = null) {
-        initWith(fileWritePath, null)
+    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
+        initWith(isDebug, fileWritePath, null)
     }
 
     //---------------------------------------------
