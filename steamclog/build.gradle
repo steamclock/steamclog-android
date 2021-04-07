@@ -1,20 +1,20 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-//apply plugin: 'maven-publish'
 apply plugin: 'com.github.dcendents.android-maven'
 group='com.github.steamclock'
-
-//apply plugin: 'io.sentry.android.gradle'
-//apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
-// Cannot do these ^
-// Error Given: Applying these plugins to a library project is unsupported. It
-//   should only be applied to the application module of your project to enable automatic upload of
-//   obfuscation mapping files for your application.
+// Note, do not apply sentry or crashlytics plugins here; must be done in application module
 
 android {
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
+
+    // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
+    // Added for Sentry support
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
 
     defaultConfig {
         minSdkVersion 21
@@ -28,7 +28,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -37,51 +37,23 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'androidx.core:core-ktx:1.3.0'
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 
     implementation 'com.jakewharton.timber:timber:4.7.1'
 
     // Add the Firebase SDK for Google Analytics.
-    implementation 'com.google.firebase:firebase-analytics:17.4.4'
+    implementation 'com.google.firebase:firebase-analytics:18.0.2'
 
-    // Add the Firebase Crashlytics SDK.
-    implementation 'com.google.firebase:firebase-crashlytics:17.1.1'
+    // Add the Firebase Crashlytics SDK (not currently used in test app)
+    //implementation 'com.google.firebase:firebase-crashlytics:17.4.1'
 
-    // https://github.com/getsentry/sentry-android/releases
+    // https://github.com/getsentry/sentry-java/releases
     // Required so that we can reference the Sentry class
-    implementation 'io.sentry:sentry-android:2.3.0'
+    implementation 'io.sentry:sentry-android:4.3.0'
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 }
-
-// https://developer.android.com/studio/build/maven-publish-plugin
-// Because the components are created only during the afterEvaluate phase, you must
-// configure your publications using the afterEvaluate() lifecycle method.
-//afterEvaluate {
-//    publishing {
-//        publications {
-//            // Creates a Maven publication called "release".
-//            release(MavenPublication) {
-//                // Applies the component for the release build variant.
-//                from components.release
-//
-//                // You can then customize attributes of the publication as shown below.
-//                groupId = 'com.steamclock.steamclog'
-//                //artifactId = 'final'
-//                version = android.defaultConfig.versionName
-//            }
-//            // Creates a Maven publication called “debug”.
-//            debug(MavenPublication) {
-//                // Applies the component for the debug build variant.
-//                from components.debug
-//                groupId = 'com.steamclock.steamclog'
-//                //artifactId = 'final-debug'
-//                version = android.defaultConfig.versionName
-//            }
-//        }
-//    }
-//}

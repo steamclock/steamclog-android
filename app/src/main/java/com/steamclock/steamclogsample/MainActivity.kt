@@ -9,7 +9,6 @@ import com.steamclock.steamclog.LogLevelPreset
 import com.steamclock.steamclog.Redactable
 import com.steamclock.steamclog.SteamcLog
 import com.steamclock.steamclog.clog
-import io.sentry.core.Sentry
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
