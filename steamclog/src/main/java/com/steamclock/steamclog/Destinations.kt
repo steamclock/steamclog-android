@@ -38,7 +38,7 @@ internal class CrashlyticsDestination : Timber.Tree() {
         companion object {
             fun with(message: String): NonFatalException {
                 val stackTrace = Thread.currentThread().stackTrace
-                val numToRemove = 10 // Move down the stack past Timber and Steamclog calls.
+                val numToRemove = 12 // Move down the stack past Timber and Steamclog calls.
                 val abbreviatedStackTrace = stackTrace.takeLast(stackTrace.size - numToRemove).toTypedArray()
                 return NonFatalException(message, abbreviatedStackTrace)
             }
@@ -50,12 +50,29 @@ internal class CrashlyticsDestination : Timber.Tree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
+        val wrapper = throwable as? SteamclogThrowableWrapper
+        val originalMessage = wrapper?.originalMessage ?: message
+        val originalThrowable = wrapper?.originalThrowable
+        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+        val breadcrumb = "$originalMessage$extraData"
+
         FirebaseCrashlytics.getInstance().apply {
-            log(message)
-            if (priority == Log.ERROR) {
-                // If no throwable associated with the error log, create a generic NonFatalException.
-                val throwMe = throwable ?: NonFatalException.with(message)
-                recordException(throwMe)
+            when {
+                priority == Log.ERROR && originalThrowable != null -> {
+                    // If given an original throwable, capture it
+                    log(breadcrumb)
+                    recordException(originalThrowable)
+                }
+                priority == Log.ERROR -> {
+                    // If no throwable given, create NonFatalException and wrap message
+                    log(breadcrumb)
+                    recordException(NonFatalException.with(originalMessage))
+                }
+                else -> {
+                    // Not an error, add breadcrumb only (which should include
+                    // both the message and any extra data.
+                    log(breadcrumb)
+                }
             }
         }
     }
