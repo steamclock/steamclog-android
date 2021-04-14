@@ -23,7 +23,9 @@ import io.sentry.Sentry
 //-----------------------------------------------------------------------------
 /**
  * CrashlyticsDestination
+ * Deprecated, we are moving away from Crashlytics towards using Sentry
  */
+@Deprecated("Migrate to Sentry")
 internal class CrashlyticsDestination : Timber.Tree() {
     /**
      * Creates a placeholder exception that can be used to report non-fatals that do not have an
@@ -71,19 +73,27 @@ internal class SentryDestination : Timber.Tree() {
      * From Sentry docs: By default, the last 100 breadcrumbs are kept and attached to next event.
      */
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
+        val wrapper = throwable as? SteamclogThrowableWrapper
+        val originalMessage = wrapper?.originalMessage ?: message
+        val originalThrowable = wrapper?.originalThrowable
+        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+        val breadcrumb = "$originalMessage$extraData"
+
         when {
-            priority == Log.ERROR && throwable != null -> {
-                // If given a throwable, add message as breadcrumb, and log exception
-                Sentry.addBreadcrumb(message)
-                Sentry.captureException(throwable)
+            priority == Log.ERROR && originalThrowable != null -> {
+                // If given an original throwable, capture it
+                Sentry.addBreadcrumb(breadcrumb)
+                Sentry.captureException(originalThrowable)
             }
             priority == Log.ERROR -> {
-                // If no throwable given, log error as message
-                Sentry.captureMessage(message)
+                // If no throwable given, log error as message (no throwable)
+                Sentry.addBreadcrumb(breadcrumb)
+                Sentry.captureMessage(originalMessage)
             }
             else -> {
-                // Not an error, add message as breadcrumb
-                Sentry.addBreadcrumb(message)
+                // Not an error, add breadcrumb only (which should include
+                // both the message and any extra data.
+                Sentry.addBreadcrumb(breadcrumb)
             }
         }
     }
@@ -100,9 +110,16 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
+
+        val wrapper = throwable as? SteamclogThrowableWrapper
+        val originalMessage = wrapper?.originalMessage ?: message
+        val originalThrowable = wrapper?.originalThrowable
+        val extraData = wrapper?.extraData
         val emoji = LogLevel.getLogLevel(priority)?.emoji
-        val prettyMessage = if (emoji == null) message else "$emoji $message"
-        super.log(priority, createCustomStackElementTag(), prettyMessage, throwable)
+        val prettyMessage = if (emoji == null) originalMessage else "$emoji $originalMessage"
+
+        extraData?.let { super.log(priority, it) }
+        super.log(priority, createCustomStackElementTag(), prettyMessage, originalThrowable)
     }
 }
 

@@ -32,7 +32,7 @@ sealed class LogLevelPreset {
             is Firehose -> LogLevel.Info
             is Develop -> LogLevel.Info
             is ReleaseAdvanced -> LogLevel.Info
-            is Release -> LogLevel.Warn
+            is Release -> LogLevel.Info
         }
 
     val crashlytics: LogLevel
