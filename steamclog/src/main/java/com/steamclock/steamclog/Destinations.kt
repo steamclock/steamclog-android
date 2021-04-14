@@ -185,7 +185,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             val appId = BuildConfig.LIBRARY_PACKAGE_NAME
             val processId = android.os.Process.myPid()
             val threadName = Thread.currentThread().name
-            val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message"
+            val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message \r\n"
             // If file created or exists save logs
             getExternalFile()?.let { file -> file.appendText(logStr) }
         } catch (e: Exception) {
