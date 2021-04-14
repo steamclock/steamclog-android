@@ -1,5 +1,8 @@
 package com.steamclock.steamclogsample
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -29,6 +32,10 @@ class MainActivity : AppCompatActivity() {
         dump_file_button.setOnClickListener { testLogDump() }
         non_fatal.setOnClickListener { testNonFatal() }
         track_analytic.setOnClickListener { testTrackAnalytic() }
+        demo_text.setOnLongClickListener {
+            copyFileToClipboard()
+            true
+        }
 
         level_selector.setSelection(when (clog.config.logLevel) {
             LogLevelPreset.Firehose -> 0
@@ -154,6 +161,14 @@ class MainActivity : AppCompatActivity() {
     private fun simulateCrash() {
         clog.info("Simulating a run time crash")
         throw RuntimeException("Test Crash") // Force a crash
+    }
+
+    private fun copyFileToClipboard() {
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = ClipData.newPlainText("File Dump", demo_text?.text)
+        clipboardManager.setPrimaryClip(clipData)
+        Toast.makeText(applicationContext, "Copied to clipboard", Toast.LENGTH_LONG).show()
+
     }
 
     // Test logging objects
