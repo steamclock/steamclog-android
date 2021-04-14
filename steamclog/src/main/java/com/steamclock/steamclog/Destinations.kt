@@ -127,15 +127,13 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-
         val wrapper = throwable as? SteamclogThrowableWrapper
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
-        val extraData = wrapper?.extraData
+        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+        val fullMessage = "$originalMessage$extraData"
         val emoji = LogLevel.getLogLevel(priority)?.emoji
-        val prettyMessage = if (emoji == null) originalMessage else "$emoji $originalMessage"
-
-        extraData?.let { super.log(priority, it) }
+        val prettyMessage = if (emoji == null) fullMessage else "$emoji $fullMessage"
         super.log(priority, createCustomStackElementTag(), prettyMessage, originalThrowable)
     }
 }
@@ -165,7 +163,16 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     // Allows us to print out to an external file if desired.
     //---------------------------------------------
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        printLogToExternalFile(priority, tag, message)
+        val wrapper = throwable as? SteamclogThrowableWrapper
+        val originalMessage = wrapper?.originalMessage ?: message
+        val originalThrowable = wrapper?.originalThrowable
+        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+        val fullMessage = "$originalMessage$extraData"
+
+        printLogToExternalFile(priority, tag, fullMessage)
+        originalThrowable?.let {
+            printLogToExternalFile(priority, tag, Log.getStackTraceString(it))
+        }
     }
 
     //---------------------------------------------
@@ -179,7 +186,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             val processId = android.os.Process.myPid()
             val threadName = Thread.currentThread().name
             val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message"
-
             // If file created or exists save logs
             getExternalFile()?.let { file -> file.appendText(logStr) }
         } catch (e: Exception) {
