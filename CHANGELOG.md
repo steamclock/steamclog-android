@@ -6,6 +6,8 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 ## Unreleased 
 
 - Update 3rd party libraries (#48)
+- Update LogLevelPresets to default to release->info, releaseAdvanced->verbose (#45)
+
 
 ---
 
