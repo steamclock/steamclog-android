@@ -334,16 +334,13 @@ private fun generateSimpleLogMessage(priority: Int,
                                      throwable: Throwable?,
                                      defaultMessage: String): String {
 
-    val emoji = if (includeEmoji) {
-        "${LogLevel.getLogLevel(priority)?.emoji} "
-    } else {
-        ""
-    }
+    val emoji = LogLevel.getLogLevel(priority)?.emoji
+    val emojiStr = if (includeEmoji && emoji != null) { "$emoji " } else { "" }
 
     val wrapper = SteamclogThrowableWrapper.from(throwable)
     val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
     val originalMessage = wrapper?.originalMessage ?: defaultMessage
-    return "$emoji$originalMessage$extraData"
+    return "$emojiStr$originalMessage$extraData"
 }
 
 /**
