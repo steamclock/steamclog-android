@@ -170,13 +170,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     //---------------------------------------------
-    // Reformats console output to include file and line number to log.
-    //---------------------------------------------
-//    override fun createStackElementTag(element: StackTraceElement): String? {
-//        return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
-//    }
-
-    //---------------------------------------------
     // Allows us to print out to an external file if desired.
     //---------------------------------------------
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
