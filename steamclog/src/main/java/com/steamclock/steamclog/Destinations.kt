@@ -50,7 +50,7 @@ internal class CrashlyticsDestination : Timber.Tree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = throwable as? SteamclogThrowableWrapper
+        val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
         val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
@@ -90,7 +90,7 @@ internal class SentryDestination : Timber.Tree() {
      * From Sentry docs: By default, the last 100 breadcrumbs are kept and attached to next event.
      */
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = throwable as? SteamclogThrowableWrapper
+        val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
         val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
@@ -127,7 +127,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = throwable as? SteamclogThrowableWrapper
+        val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
         val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
@@ -155,29 +155,35 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     //---------------------------------------------
     // Reformats console output to include file and line number to log.
     //---------------------------------------------
-    override fun createStackElementTag(element: StackTraceElement): String? {
-        return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
-    }
+//    override fun createStackElementTag(element: StackTraceElement): String? {
+//        return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
+//    }
 
     //---------------------------------------------
     // Allows us to print out to an external file if desired.
     //---------------------------------------------
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = throwable as? SteamclogThrowableWrapper
+        val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
         val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
         val fullMessage = "$originalMessage$extraData"
+        val stackTraceTag = createCustomStackElementTag()
 
-        printLogToExternalFile(priority, tag, fullMessage)
+        printLogToExternalFile(priority, stackTraceTag, fullMessage)
         originalThrowable?.let {
-            printLogToExternalFile(priority, tag, Log.getStackTraceString(it))
+            printLogToExternalFile(priority, stackTraceTag, Log.getStackTraceString(it))
         }
     }
 
     //---------------------------------------------
     // Support to write logs out to External HTML file.
     //---------------------------------------------
+    /**
+     * [EMOJI?] [Date/Time UTC?] [App ID[Process ID?: Thread ID?]] ...
+     * [Log Level] [Thread name] [(FileName.ext:line number): functionName()] > ...
+     * [The actual log message], JSON: [JSON Object if applicable]
+     */
     private fun printLogToExternalFile(priority: Int, tag: String?, message: String) {
         try {
             val date = Date()
@@ -185,6 +191,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             val appId = BuildConfig.LIBRARY_PACKAGE_NAME
             val processId = android.os.Process.myPid()
             val threadName = Thread.currentThread().name
+
             val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message \r\n"
             // If file created or exists save logs
             getExternalFile()?.let { file -> file.appendText(logStr) }
@@ -200,7 +207,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     private fun getExternalFile(): File? {
-
         val date = SimpleDateFormat(fileNameTimestamp, Locale.US).format(Date())
         val filename = "${fileNamePrefix}_${date}.${fileExt}"
 
@@ -263,27 +269,22 @@ internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Bool
 }
 
 /**
- * Used mostly for Steamclog to report message using Log (not Timber), since using
- * Timber may lead to infinite calls in the library.
- */
-internal fun logToConsole(message: String) {
-    Log.v("steamclog", message)
-}
-
-/**
- * Timber is using a specific call stack index to correctly generate the stack element to be used
- * in the createStackElementTag method, which is included in a final method we have no control over.
- * Because we are wrapping Timber calls in Steamclog,alll of our
- * that stack call index point to our library, instead of the calling method.
+ * IMPORTANT: Must be called from a Destination's "override fun log" method for the
+ * modified stacktrace to be calculated correctly.
  *
- * getStackTraceElement uses a call stack index relative to our library, BUT because we cannot override
- * Timber.getTag, we cannot get access to the stack trace element during our log step. As such,
- * we need to use this method to allow us to get the correct stack trace element associated with the
- * actual call to our Steamclog.
+ * This method helps us get around that fact that because we are wrapping Timber calls, the
+ * stacktrace information associated with the location of the report is relative to the Steamclog
+ * codebase, and not the location where actual sclog method was invoked.
+ *
+ * Since Timber's createStackElementTag is made unusable since getTag is final (and gives
+ * us the incorrect stacktrace location), this method attempts to generate the desired stacktrace
+ * by creating a dummy Throwable and returning a modified version of its stacktrace relative to
+ * the number of items in the stack due to Steamclog functionality.
+ *
+ * This is based on how Timber generates the stacktrace location for itself normally.
  */
-private fun getStackTraceElement(): StackTraceElement {
-
-    val SC_CALL_STACK_INDEX = 10 // Need to go back X in the call stack to get to the actual calling method.
+private fun createCustomStackElementTag(): String {
+    val SC_CALL_STACK_INDEX = 9 // Need to go back X in the call stack to get to the actual calling method.
 
     // ---- Taken directly from Timber ----
     // DO NOT switch this to Thread.getCurrentThread().getStackTrace(). The test will pass
@@ -292,15 +293,14 @@ private fun getStackTraceElement(): StackTraceElement {
     check(stackTrace.size > SC_CALL_STACK_INDEX) { "Synthetic stacktrace didn't have enough elements: are you using proguard?" }
     // ------------------------------------
 
-    return stackTrace[SC_CALL_STACK_INDEX]
+    val element = stackTrace[SC_CALL_STACK_INDEX]
+    return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
 }
 
 /**
- * Since Timber's createStackElementTag is made unusable to us since getTag is final, I have created
- * createCustomStackElementTag that makes use of our custom call stack index to give us better filename
- * and linenumber reporting.
+ * Used mostly for Steamclog to report message using Log (not Timber), since using
+ * Timber may lead to infinite calls in the library.
  */
-private fun createCustomStackElementTag(): String {
-    val element = getStackTraceElement()
-    return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
+internal fun logToConsole(message: String) {
+    Log.v("steamclog", message)
 }
