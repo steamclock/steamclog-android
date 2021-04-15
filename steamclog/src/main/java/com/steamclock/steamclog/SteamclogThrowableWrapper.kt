@@ -9,4 +9,16 @@ package com.steamclock.steamclog
 data class SteamclogThrowableWrapper(
     val originalMessage: String,
     val originalThrowable: Throwable?,
-    val extraData: String?): Throwable(originalMessage)
+    val extraData: String?): Throwable(originalMessage)  {
+        companion object {
+            fun from(throwable: Throwable?): SteamclogThrowableWrapper? {
+                if (throwable == null) return null
+                return throwable as? SteamclogThrowableWrapper
+                    ?: SteamclogThrowableWrapper(
+                        throwable.message ?: throwable.toString(),
+                        originalThrowable = throwable,
+                        extraData = null
+                    )
+            }
+        }
+}
