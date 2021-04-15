@@ -53,25 +53,30 @@ internal class CrashlyticsDestination : Timber.Tree() {
         val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
-        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
-        val breadcrumb = "$originalMessage$extraData"
+
+        val breadcrumbMessage = generateSimpleLogMessage(
+            priority,
+            includeEmoji = false,
+            wrapper,
+            message
+        )
 
         FirebaseCrashlytics.getInstance().apply {
             when {
                 priority == Log.ERROR && originalThrowable != null -> {
                     // If given an original throwable, capture it
-                    log(breadcrumb)
+                    log(breadcrumbMessage)
                     recordException(originalThrowable)
                 }
                 priority == Log.ERROR -> {
                     // If no throwable given, create NonFatalException and wrap message
-                    log(breadcrumb)
+                    log(breadcrumbMessage)
                     recordException(NonFatalException.with(originalMessage))
                 }
                 else -> {
                     // Not an error, add breadcrumb only (which should include
                     // both the message and any extra data.
-                    log(breadcrumb)
+                    log(breadcrumbMessage)
                 }
             }
         }
@@ -82,6 +87,11 @@ internal class CrashlyticsDestination : Timber.Tree() {
  * SentryDestination
  */
 internal class SentryDestination : Timber.Tree() {
+
+    companion object {
+        const val breadcrumbCategory = "steamclog"
+    }
+
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.sentry, priority)
     }
@@ -93,24 +103,29 @@ internal class SentryDestination : Timber.Tree() {
         val wrapper = SteamclogThrowableWrapper.from(throwable)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
-        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
-        val breadcrumb = "$originalMessage$extraData"
+
+        val breadcrumbMessage = generateSimpleLogMessage(
+            priority,
+            includeEmoji = false,
+            wrapper,
+            message
+        )
 
         when {
             priority == Log.ERROR && originalThrowable != null -> {
                 // If given an original throwable, capture it
-                Sentry.addBreadcrumb(breadcrumb)
+                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
                 Sentry.captureException(originalThrowable)
             }
             priority == Log.ERROR -> {
                 // If no throwable given, log error as message (no throwable)
-                Sentry.addBreadcrumb(breadcrumb)
+                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
                 Sentry.captureMessage(originalMessage)
             }
             else -> {
                 // Not an error, add breadcrumb only (which should include
                 // both the message and any extra data.
-                Sentry.addBreadcrumb(breadcrumb)
+                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
             }
         }
     }
@@ -128,13 +143,16 @@ internal class ConsoleDestination: Timber.DebugTree() {
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         val wrapper = SteamclogThrowableWrapper.from(throwable)
-        val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
-        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
-        val fullMessage = "$originalMessage$extraData"
-        val emoji = LogLevel.getLogLevel(priority)?.emoji
-        val prettyMessage = if (emoji == null) fullMessage else "$emoji $fullMessage"
-        super.log(priority, createCustomStackElementTag(), prettyMessage, originalThrowable)
+        val fullMessage = generateSimpleLogMessage(
+            priority,
+            includeEmoji = true,
+            throwable,
+            message)
+
+        // Since we are relying on android.util.log formatting here,
+        // do not call generateFormattedLogMessage
+        super.log(priority, createCustomStackElementTag(), fullMessage, originalThrowable)
     }
 }
 
@@ -145,7 +163,6 @@ internal class ConsoleDestination: Timber.DebugTree() {
 internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var fileNamePrefix: String = "sclog"
     private var fileNameTimestamp = "yyyy_MM_dd"
-    private var logTimestampFormat = "yyyy-MM-dd'.'HH:mm:ss.SSS"
     private var fileExt = "txt"
 
     override fun isLoggable(priority: Int): Boolean {
@@ -164,15 +181,20 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     //---------------------------------------------
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         val wrapper = SteamclogThrowableWrapper.from(throwable)
-        val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
-        val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
-        val fullMessage = "$originalMessage$extraData"
-        val stackTraceTag = createCustomStackElementTag()
 
-        printLogToExternalFile(priority, stackTraceTag, fullMessage)
+        val fullMessage = generateFullLogMessage(
+            priority,
+            createCustomStackElementTag(),
+            includeTimestamp = true,
+            includeEmoji = false,
+            throwable,
+            message
+        )
+
+        printLogToExternalFile(fullMessage)
         originalThrowable?.let {
-            printLogToExternalFile(priority, stackTraceTag, Log.getStackTraceString(it))
+            printLogToExternalFile(Log.getStackTraceString(it))
         }
     }
 
@@ -184,17 +206,9 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      * [Log Level] [Thread name] [(FileName.ext:line number): functionName()] > ...
      * [The actual log message], JSON: [JSON Object if applicable]
      */
-    private fun printLogToExternalFile(priority: Int, tag: String?, message: String) {
+    private fun printLogToExternalFile(message: String) {
         try {
-            val date = Date()
-            val logTimeStamp = SimpleDateFormat(logTimestampFormat, Locale.US).format(date)
-            val appId = BuildConfig.LIBRARY_PACKAGE_NAME
-            val processId = android.os.Process.myPid()
-            val threadName = Thread.currentThread().name
-
-            val logStr = "$logTimeStamp $appId[$processId:$threadName] [$priority] [$tag] > $message \r\n"
-            // If file created or exists save logs
-            getExternalFile()?.let { file -> file.appendText(logStr) }
+            getExternalFile()?.let { file -> file.appendText(message) }
         } catch (e: Exception) {
             logToConsole("HTMLFileTree failed to write into file: $e")
         }
@@ -295,6 +309,51 @@ private fun createCustomStackElementTag(): String {
 
     val element = stackTrace[SC_CALL_STACK_INDEX]
     return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
+}
+
+/**
+ * Returns based on given parameters:
+ * - [emoji][Message][: Extra data]
+ */
+private fun generateSimpleLogMessage(priority: Int,
+                                     includeEmoji: Boolean,
+                                     throwable: Throwable?,
+                                     defaultMessage: String): String {
+
+    val emoji = if (includeEmoji) {
+        "${LogLevel.getLogLevel(priority)?.emoji} "
+    } else {
+        ""
+    }
+
+    val wrapper = SteamclogThrowableWrapper.from(throwable)
+    val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+    val originalMessage = wrapper?.originalMessage ?: defaultMessage
+    return "$emoji$originalMessage$extraData"
+}
+
+/**
+ * Returns based on given parameters:
+ * - [timestamp][package name][processId:threadId] [priority] [stackTag] > [emoji][Message][: Extra data]
+ */
+private fun generateFullLogMessage(priority: Int,
+                                   stackTag: String,
+                                   includeTimestamp: Boolean,
+                                   includeEmoji: Boolean,
+                                   throwable: Throwable?,
+                                   defaultMessage: String): String {
+    val logTimestampFormat = "yyyy-MM-dd'.'HH:mm:ss.SSS"
+    val logTimeStamp = if (includeTimestamp) {
+        "${SimpleDateFormat(logTimestampFormat, Locale.US).format(Date())} "
+    } else {
+        ""
+    }
+
+    val fullMessage = generateSimpleLogMessage(priority, includeEmoji, throwable, defaultMessage)
+    return logTimeStamp +
+            BuildConfig.LIBRARY_PACKAGE_NAME +
+            "[${android.os.Process.myPid()}:${Thread.currentThread().name}] " +
+            "[$priority] [$stackTag] > $fullMessage"
 }
 
 /**
