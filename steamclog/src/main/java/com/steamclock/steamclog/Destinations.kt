@@ -306,8 +306,22 @@ private fun createCustomStackElementTag(): String {
     val stackTrace = Throwable().stackTrace
     check(stackTrace.size > SC_CALL_STACK_INDEX) { "Synthetic stacktrace didn't have enough elements: are you using proguard?" }
     // ------------------------------------
-
     val element = stackTrace[SC_CALL_STACK_INDEX]
+    val beforeCutoff = stackTrace[SC_CALL_STACK_INDEX - 1]
+    val steamclogFileName = "Steamclog.kt"
+    val internalLog = element.fileName == steamclogFileName
+            && beforeCutoff.methodName == "logInternal"
+
+    // Since unit testing is hard to do currently, add one more test on Debug builds that
+    // attempts to determine if the stack index is pointing to the correct location.
+    if (SteamcLog.config.isDebug && !internalLog) {
+        check(beforeCutoff.fileName == steamclogFileName)
+            { "createCustomStackElementTag failed: Element before cutoff no longer correct" }
+        check(element.fileName != steamclogFileName) {
+            { "createCustomStackElementTag failed: Element after cutoff no longer correct" }
+        }
+    }
+
     return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
 }
 

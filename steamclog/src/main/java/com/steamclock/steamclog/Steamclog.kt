@@ -4,6 +4,7 @@ package com.steamclock.steamclog
 
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
@@ -67,7 +68,7 @@ object SteamcLog {
             clog.config.firebaseAnalytics = firebaseAnalytics
         }
 
-        info("Steamclog initialized:\n$this")
+        logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
     }
 
     /** 
@@ -119,12 +120,12 @@ object SteamcLog {
 
     fun track(@NonNls id: String, data: Map<String, Any?>) {
         if (!config.logLevel.analyticsEnabled) {
-            info("Anayltics not enabled ($id)")
+            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
             return
         }
 
         if (config.firebaseAnalytics == null) {
-            info("Firebase analytics instance not set ($id)")
+            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
             return
         }
 
@@ -195,6 +196,15 @@ object SteamcLog {
             is Throwable -> "$message ${obj.message?.let { throwMsg ->" : $throwMsg"}}"
             else -> "$message : ${obj.getRedactedDescription()}"
         }
+    }
+
+    /**
+     * Allows the Steamclog library to log info messages.
+     * Due to stacktrace manipultions being done in the Destinations, we should not call
+     * the info/debug/verbose calls directly.
+     */
+    private fun logInternal(priority: LogLevel, message: String) {
+        logTimber(priority, message, null, null)
     }
 
     /**
