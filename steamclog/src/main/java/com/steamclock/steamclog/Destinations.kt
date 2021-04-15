@@ -208,7 +208,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      */
     private fun printLogToExternalFile(message: String) {
         try {
-            getExternalFile()?.let { file -> file.appendText(message) }
+            getExternalFile()?.let { file -> file.appendText("$message\r\n") }
         } catch (e: Exception) {
             logToConsole("HTMLFileTree failed to write into file: $e")
         }
