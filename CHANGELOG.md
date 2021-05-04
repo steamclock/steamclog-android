@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Unreleased 
+
+
+---
+
+## Jitpack v1.4 : May 3th 2021
+
 - Update LogLevelPresets to default to release->info, releaseAdvanced->verbose (#45)
 - Update 3rd party libraries (#48)
 - Clean up Sentry report formatting (#51)
