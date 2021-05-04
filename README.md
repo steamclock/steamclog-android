@@ -105,7 +105,9 @@ You will need to create a new application on the Sentry dashboard which requires
 
 Once your main project has Sentry enabled no further work should be required for Steamclog to report to it.
  
-#### Enabling Firebase Crashlytics 
+#### Enabling Firebase Crashlytics (Deprecated)
+
+_We are moving our default project crash reporting provider from Crashlytics over to Sentry_
 
 To setup Firebase Crashyltics in your project, see https://firebase.google.com/docs/crashlytics/get-started?platform=android
 
@@ -141,8 +143,8 @@ There are four log level presets available, each of which has different logging 
 |-------------------|------------|--------------|--------------|
 | `firehose`        | verbose    | verbose      | none         |
 | `develop`         | none       | debug        | none         |
-| `release`         | none       | none         | warn         |
-| `releaseAdvanced` | verbose    | none         | info         |
+| `release`         | none       | none         | info         |
+| `releaseAdvanced` | verbose    | none         | verbose         |
 
 In most cases, you'll be able to get by using `firehose` or `develop` on debug builds, and `release` or `releaseAdvanced` for production builds.
 Note that if you're using `releaseAdvanced` you must build in a way for the client to email you the disk logs.
@@ -171,8 +173,7 @@ Each of these functions has the following 2 available signatures:
 If `requireRedacted` is set to `true`, then the Any object *must* implement the Redactable interface, else all properties will be shown as `<REDACTED>`.
 
 #### Error and Fatal Specific Signatures
-Error and Fatal levels have 2 more signatures that allows a given Throwable to be associated with the log. 
-`clog.<level>(_ message: String, throwable: Throwable)`
+Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log. 
 `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
 If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Crashlytics.
