@@ -4,6 +4,7 @@ package com.steamclock.steamclog
 
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
@@ -67,7 +68,7 @@ object SteamcLog {
             clog.config.firebaseAnalytics = firebaseAnalytics
         }
 
-        info("Steamclog initialized:\n$this")
+        logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
     }
 
     /** 
@@ -89,45 +90,42 @@ object SteamcLog {
     // To get around this for now we explicit versions of each <level> method below without optional
     // parameters.
     //---------------------------------------------
-    fun verbose(@NonNls message: String)                = logTimber(LogLevel.Verbose, message)
-    fun verbose(@NonNls message: String, obj: Any)      = logTimber(LogLevel.Verbose, message, obj)
+    fun verbose(@NonNls message: String)                = logTimber(LogLevel.Verbose, message, null, null)
+    fun verbose(@NonNls message: String, obj: Any)      = logTimber(LogLevel.Verbose, message, null, obj)
 
-    fun debug(@NonNls message: String)                  = logTimber(LogLevel.Debug, message)
-    fun debug(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Debug, message, obj)
+    fun debug(@NonNls message: String)                  = logTimber(LogLevel.Debug, message, null, null)
+    fun debug(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Debug, message, null, obj)
 
-    fun info(@NonNls message: String)                   = logTimber(LogLevel.Info, message)
-    fun info(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Info, message, obj)
+    fun info(@NonNls message: String)                   = logTimber(LogLevel.Info, message, null, null)
+    fun info(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Info, message, null, obj)
 
-    fun warn(@NonNls message: String)                   = logTimber(LogLevel.Warn, message)
-    fun warn(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Warn, message, obj)
+    fun warn(@NonNls message: String)                   = logTimber(LogLevel.Warn, message, null, null)
+    fun warn(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Warn, message, null, obj)
 
-    fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message)
-    fun error(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Error, message, obj)
+    fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message, null, null)
     fun error(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj)
 
-    fun fatal(@NonNls message: String)                  = logTimber(LogLevel.Fatal, message)
-    fun fatal(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Fatal, message, obj)
+    fun fatal(@NonNls message: String)                  = logTimber(LogLevel.Fatal, message, null, null)
     fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Fatal, message, throwable, obj)
 
-    // Mapping onto the corresponding Timber calls.
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String) = Timber.log(logLevel.javaLevel, message)
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String, throwable: Throwable?, obj: Any?) = Timber.log(logLevel.javaLevel, throwable, addObjToMessage(message, obj))
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String, obj: Any?) {
-        if (obj is Throwable) {
-            Timber.log(logLevel.javaLevel, obj, message)
-        } else {
-            Timber.log(logLevel.javaLevel, addObjToMessage(message, obj))
-        }
+    /**
+     *  Since Timber logging allows a Thowable to be passed to its trees, we wrap all data in
+     *  a SteamclogThrowableWrapper, and let the Destinations handle the data components accordingly.
+     */
+    private fun logTimber(logLevel: LogLevel, @NonNls message: String, throwable: Throwable?, obj: Any?) {
+        val extraData =  obj?.getRedactedDescription()
+        val wrapper = SteamclogThrowableWrapper(message, throwable, extraData)
+        Timber.log(logLevel.javaLevel, wrapper)
     }
 
     fun track(@NonNls id: String, data: Map<String, Any?>) {
         if (!config.logLevel.analyticsEnabled) {
-            info("Anayltics not enabled ($id)")
+            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
             return
         }
 
         if (config.firebaseAnalytics == null) {
-            info("Firebase analytics instance not set ($id)")
+            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
             return
         }
 
@@ -198,6 +196,15 @@ object SteamcLog {
             is Throwable -> "$message ${obj.message?.let { throwMsg ->" : $throwMsg"}}"
             else -> "$message : ${obj.getRedactedDescription()}"
         }
+    }
+
+    /**
+     * Allows the Steamclog library to log info messages.
+     * Due to stacktrace manipultions being done in the Destinations, we should not call
+     * the info/debug/verbose calls directly.
+     */
+    private fun logInternal(priority: LogLevel, message: String) {
+        logTimber(priority, message, null, null)
     }
 
     /**
