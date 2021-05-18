@@ -14,8 +14,8 @@ An open source library that consolidates/formalizes the logging setup and usage 
     + [Initialization](#initialization)
       - [Enabling External File Logging](#enabling-external-file-logging)
     + [Enabling Sentry Reporting](#enabling-sentry-reporting)
-      - [Enabling Firebase Crashlytics](#enabling-firebase-crashlytics)
-      - [Enabling Firebase Analytics](#enabling-firebase-analytics)
+      - [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
+      - [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
     + [Configuration](#configuration)
       - [logLevel: LogLevelPreset](#loglevel--loglevelpreset)
       - [requireRedacted: Bool](#requireredacted--bool)
@@ -25,7 +25,8 @@ An open source library that consolidates/formalizes the logging setup and usage 
     + [Exporting Logs](#exporting-logs)
       - [Variable Redaction](#variable-redaction)
 
-_[Table of contents generated with markdown-toc](http://ecotrust-canada.github.io/markdown-toc/)_
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 
 ## Development
 
@@ -83,8 +84,6 @@ Out of the box, Steamclog will have support for
  * Printing to the console (no setup required)
  * External file logging (setup required)
  * Sentry reporting  (setup required)
- * Firebase Crashlytics (setup required)
- * Firebase Analytics (setup required)
 
 #### Enabling External File Logging
 
@@ -105,31 +104,15 @@ You will need to create a new application on the Sentry dashboard which requires
 
 Once your main project has Sentry enabled no further work should be required for Steamclog to report to it.
  
-#### Enabling Firebase Crashlytics (Deprecated)
+#### Enabling Firebase Crashlytics (No longer supported)
 
-_We are moving our default project crash reporting provider from Crashlytics over to Sentry_
+_Firebase Crashlytics is no longer a supported destination for crash reporting_
 
-To setup Firebase Crashyltics in your project, see https://firebase.google.com/docs/crashlytics/get-started?platform=android
 
-Once your main project has Crashlytics enabled (ie. includes the required `google-services.json` file etc...) no further work should be required for Steamclog to report to it.
- 
+#### Enabling Firebase Analytics (No longer supported)
 
-#### Enabling Firebase Analytics
+_Firebase Analytics is no longer a supported for tracking analytics; tracking must be handled manually by the calling project_
 
-To setup Firebase Analytics in your project, see https://firebase.google.com/docs/analytics/get-started?platform=android
-
-Due to current limitations on how the firebase plugin is applied to projects, your application must pass along an instance to the FirebaseAnalytics object before it can track analytics.
-
-The `Steamclog.initWith` method can be used to enable firebase analytics; this method only needs to be called once, and can be done in your Application object's `onCreate` method. If your application has setup Firebase Analytics correctly, the `Firebase.analytics` object should be available to be passed to the initWith method.
-
-```
-clog.initWith(BuildConfig.DEBUG, firebaseAnalytics = Firebase.analytics)
-```
-
-Both logging and analytics can be initialized at the same time:
-```
-clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir, firebaseAnalytics = Firebase.analytics)
-```
 
 ### Configuration
 
@@ -161,7 +144,7 @@ From there, you can use `clog` anywhere in your application with the following l
 `clog.debug` - Info that is interesting to developers, any information that may be helpful when debugging. Should be stored to system logs for debug builds but never stored in production.
 `clog.info` - Routine app operations, used to document changes in state within the application. Minimum level of log stored in device logs in production.
 `clog.warn` - Developer concerns or incorrect state etc. Something’s definitely gone wrong, but there’s a path to recover
-`clog.error` - Something has gone wrong, report to a remote service (like Crashlytics)
+`clog.error` - Something has gone wrong, report to a remote service (like Sentry)
 `clog.fatal` - Something has gone wrong and we cannot recover, so force the app to close.
 
 #### Basic Signatures
@@ -176,7 +159,7 @@ If `requireRedacted` is set to `true`, then the Any object *must* implement the 
 Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log. 
 `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
-If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Crashlytics.
+If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
 
 ### Exporting Logs
 

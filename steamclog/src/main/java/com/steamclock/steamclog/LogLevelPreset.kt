@@ -35,14 +35,6 @@ sealed class LogLevelPreset {
             is Release -> LogLevel.Info
         }
 
-    val crashlytics: LogLevel
-        get() = when(this) {
-            is Firehose -> LogLevel.None
-            is Develop -> LogLevel.None
-            is ReleaseAdvanced -> LogLevel.Verbose
-            is Release -> LogLevel.Info
-        }
-
     val sentry: LogLevel
         get() = when(this) {
             is Firehose -> LogLevel.None
@@ -67,15 +59,9 @@ sealed class LogLevelPreset {
             is Release -> LogLevel.None
         }
 
-    val analyticsEnabled: Boolean
-        get() = when(this) {
-            is Firehose -> false
-            is Develop -> false
-            is ReleaseAdvanced -> true
-            is Release -> true
-        }
+    val analyticsEnabled = false
 
     override fun toString(): String {
-        return "$title(global=$global, console=$console, file=$file, crashlytics=$crashlytics, sentry=$sentry)"
+        return "$title(global=$global, console=$console, file=$file, sentry=$sentry)"
     }
 }

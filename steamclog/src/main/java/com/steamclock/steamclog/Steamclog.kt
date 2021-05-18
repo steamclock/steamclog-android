@@ -2,15 +2,9 @@
 
 package com.steamclock.steamclog
 
-import android.os.Bundle
-import android.os.Parcelable
-import android.util.Log
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
-import java.io.Serializable
 
 /**
  * Steamclog
@@ -28,9 +22,8 @@ object SteamcLog {
     // Privates
     //---------------------------------------------
     @Suppress("JoinDeclarationAndAssignment")
-    private var crashlyticsTree: CrashlyticsDestination
-    private var sentryTree: SentryDestination
     private var customDebugTree: ConsoleDestination
+    private var sentryTree: SentryDestination
     private var externalLogFileTree: ExternalLogFileDestination
 
     //---------------------------------------------
@@ -46,37 +39,20 @@ object SteamcLog {
         customDebugTree = ConsoleDestination()
         updateTree(customDebugTree, true)
 
-        crashlyticsTree = CrashlyticsDestination()
-        updateTree(crashlyticsTree, true)
-
         sentryTree = SentryDestination()
         updateTree(sentryTree, true)
 
         externalLogFileTree = ExternalLogFileDestination()
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
-
-        // FirebaseAnalytics instance required before we can start tracking analytics
     }
 
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null, firebaseAnalytics: FirebaseAnalytics? = null) {
+    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
         fileWritePath?.let {
             this.config = Config(isDebug, fileWritePath)
             updateTree(externalLogFileTree, true)
         }
 
-        firebaseAnalytics?.let {
-            clog.config.firebaseAnalytics = firebaseAnalytics
-        }
-
         logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
-    }
-
-    /** 
-     * initWith omitting FirebaseAnalytics instance, for applications that
-     * do not wish to use FirebaseAnalytics.
-     */
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
-        initWith(isDebug, fileWritePath, null)
     }
 
     //---------------------------------------------
@@ -118,39 +94,40 @@ object SteamcLog {
         Timber.log(logLevel.javaLevel, wrapper)
     }
 
-    fun track(@NonNls id: String, data: Map<String, Any?>) {
-        if (!config.logLevel.analyticsEnabled) {
-            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
-            return
-        }
-
-        if (config.firebaseAnalytics == null) {
-            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
-            return
-        }
-
-        val bundle = Bundle()
-        data.forEach { (key, value) ->
-            when (value) {
-                is Redactable -> {
-                    bundle.putString(key, value.getRedactedDescription())
-                }
-                is Serializable -> {
-                    bundle.putSerializable(key, value)
-                }
-                is Parcelable -> {
-                    bundle.putParcelable(key, value)
-                }
-                else -> {
-                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
-                    return
-                }
-            }
-        }
-
-        // Obtain the FirebaseAnalytics instance from the config.
-        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
-    }
+    // todo #64 Re-implement track method; was removed when we ported over to using Sentry
+//    fun track(@NonNls id: String, data: Map<String, Any?>) {
+//        if (!config.logLevel.analyticsEnabled) {
+//            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
+//            return
+//        }
+//
+//        if (config.firebaseAnalytics == null) {
+//            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
+//            return
+//        }
+//
+//        val bundle = Bundle()
+//        data.forEach { (key, value) ->
+//            when (value) {
+//                is Redactable -> {
+//                    bundle.putString(key, value.getRedactedDescription())
+//                }
+//                is Serializable -> {
+//                    bundle.putSerializable(key, value)
+//                }
+//                is Parcelable -> {
+//                    bundle.putParcelable(key, value)
+//                }
+//                else -> {
+//                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
+//                    return
+//                }
+//            }
+//        }
+//
+//        // Obtain the FirebaseAnalytics instance from the config.
+//        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
+//    }
 
     //---------------------------------------------
     // Public util methods
@@ -159,21 +136,17 @@ object SteamcLog {
      * This should be a fairly obscure ID, not something that could be immediately traced to a
      * specific individual (ie. not an email address)
      */
-    fun setUserId(id: String) {
-        // Write it to the log
-        Timber.i("Setting user id: $id")
+//    fun setUserId(id: String) {
+//        // Write it to the log
+//        Timber.i("Setting user id: $id")
+//
+//        // Add user id to all subsequent crash reports
+//        // todo #63: Set userId on Sentry reports?
+//    }
 
-        // Add user id to all subsequent crash reports
-        FirebaseCrashlytics.getInstance().apply { setUserId(id) }
-    }
-
-    fun setCustomKey(key: String, value: String) {
-        // Write it to the log
-        Timber.i("Set key/value pair: $key/$value")
-
-        // Add it as a custom key to all subsequent crash reports
-        FirebaseCrashlytics.getInstance().apply { setCustomKey(key, value) }
-    }
+//    fun setCustomKey(key: String, value: String) {
+//        // todo #63: Set custom keys on Sentry reports?
+//    }
 
     suspend fun getLogFileContents(): String? {
         return externalLogFileTree.getLogFileContents()
