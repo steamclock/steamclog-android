@@ -34,6 +34,8 @@ class MainActivity : AppCompatActivity() {
         track_analytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
         }
+        add_user_id.setOnClickListener { clog.setUserId("1234") }
+
         demo_text.setOnLongClickListener {
             copyFileToClipboard()
             true

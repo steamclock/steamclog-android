@@ -6,6 +6,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 ## Unreleased 
 - Removed Firebase Crashlytics support (#62)
 - Removed Firebase Analytics support (#62)
+- Added support for Sentry to "setUserId" (#63)
 
 ---
 
