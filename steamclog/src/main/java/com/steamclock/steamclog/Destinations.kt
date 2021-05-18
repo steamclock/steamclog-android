@@ -1,7 +1,6 @@
 package com.steamclock.steamclog
 
 import android.util.Log
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import java.io.File
 import java.lang.StringBuilder
@@ -21,68 +20,6 @@ import io.sentry.Sentry
 // Each destination uses a Steamclog.config.destinationLevels setting to determine if
 // they are to consume the logged item or not.
 //-----------------------------------------------------------------------------
-/**
- * CrashlyticsDestination
- * Deprecated, we are moving away from Crashlytics towards using Sentry
- */
-@Deprecated("Migrate to Sentry")
-internal class CrashlyticsDestination : Timber.Tree() {
-    /**
-     * Creates a placeholder exception that can be used to report non-fatals that do not have an
-     * underlying Throwable error associated with them. This class uses an abbreviatedStackTrace
-     * so that the non-fatal will be reported at the line of code that called the steamclog.error
-     * method.
-     */
-    class NonFatalException(message: String, private val abbreviatedStackTrace: Array<StackTraceElement>): Exception(message) {
-        override fun getStackTrace(): Array<StackTraceElement> { return abbreviatedStackTrace }
-        companion object {
-            fun with(message: String): NonFatalException {
-                val stackTrace = Thread.currentThread().stackTrace
-                val numToRemove = 12 // Move down the stack past Timber and Steamclog calls.
-                val abbreviatedStackTrace = stackTrace.takeLast(stackTrace.size - numToRemove).toTypedArray()
-                return NonFatalException(message, abbreviatedStackTrace)
-            }
-        }
-    }
-
-    override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.crashlytics, priority)
-    }
-
-    override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = SteamclogThrowableWrapper.from(throwable)
-        val originalMessage = wrapper?.originalMessage ?: message
-        val originalThrowable = wrapper?.originalThrowable
-
-        val breadcrumbMessage = generateSimpleLogMessage(
-            priority,
-            includeEmoji = false,
-            wrapper,
-            message
-        )
-
-        FirebaseCrashlytics.getInstance().apply {
-            when {
-                priority == Log.ERROR && originalThrowable != null -> {
-                    // If given an original throwable, capture it
-                    log(breadcrumbMessage)
-                    recordException(originalThrowable)
-                }
-                priority == Log.ERROR -> {
-                    // If no throwable given, create NonFatalException and wrap message
-                    log(breadcrumbMessage)
-                    recordException(NonFatalException.with(originalMessage))
-                }
-                else -> {
-                    // Not an error, add breadcrumb only (which should include
-                    // both the message and any extra data.
-                    log(breadcrumbMessage)
-                }
-            }
-        }
-    }
-}
-
 /**
  * SentryDestination
  */

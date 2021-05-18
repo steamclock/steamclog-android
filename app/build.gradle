@@ -3,7 +3,6 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 apply plugin: 'com.google.gms.google-services'  // Firebase
-apply plugin: 'com.google.firebase.crashlytics' // Firebase, Crashlytics
 
 apply plugin: 'io.sentry.android.gradle' // Sentry Proguard/R8 mappings
 

@@ -4,9 +4,7 @@ package com.steamclock.steamclog
 
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -28,9 +26,8 @@ object SteamcLog {
     // Privates
     //---------------------------------------------
     @Suppress("JoinDeclarationAndAssignment")
-    private var crashlyticsTree: CrashlyticsDestination
-    private var sentryTree: SentryDestination
     private var customDebugTree: ConsoleDestination
+    private var sentryTree: SentryDestination
     private var externalLogFileTree: ExternalLogFileDestination
 
     //---------------------------------------------
@@ -45,9 +42,6 @@ object SteamcLog {
 
         customDebugTree = ConsoleDestination()
         updateTree(customDebugTree, true)
-
-        crashlyticsTree = CrashlyticsDestination()
-        updateTree(crashlyticsTree, true)
 
         sentryTree = SentryDestination()
         updateTree(sentryTree, true)
@@ -164,15 +158,7 @@ object SteamcLog {
         Timber.i("Setting user id: $id")
 
         // Add user id to all subsequent crash reports
-        FirebaseCrashlytics.getInstance().apply { setUserId(id) }
-    }
-
-    fun setCustomKey(key: String, value: String) {
-        // Write it to the log
-        Timber.i("Set key/value pair: $key/$value")
-
-        // Add it as a custom key to all subsequent crash reports
-        FirebaseCrashlytics.getInstance().apply { setCustomKey(key, value) }
+        // todo #63: Set userId on Sentry reports?
     }
 
     suspend fun getLogFileContents(): String? {
