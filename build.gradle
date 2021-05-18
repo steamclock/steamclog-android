@@ -13,8 +13,6 @@ buildscript {
 
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
 
-        classpath 'com.google.gms:google-services:4.3.5'
-
         // For Sentry + Proguard/R8 support
         // https://github.com/getsentry/sentry-android-gradle-plugin/releases
         classpath 'io.sentry:sentry-android-gradle-plugin:1.7.36'

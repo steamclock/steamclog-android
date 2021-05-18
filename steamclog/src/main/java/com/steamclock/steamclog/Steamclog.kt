@@ -155,7 +155,7 @@ object SteamcLog {
             scope.user = null
         }
     }
-
+    
 //    fun setCustomKey(key: String, value: String) {
 //        // todo #63: Set custom keys on Sentry reports?
 //    }
