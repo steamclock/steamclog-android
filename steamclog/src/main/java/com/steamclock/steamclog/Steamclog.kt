@@ -136,13 +136,17 @@ object SteamcLog {
      * This should be a fairly obscure ID, not something that could be immediately traced to a
      * specific individual (ie. not an email address)
      */
-    fun setUserId(id: String) {
-        // Write it to the log
-        Timber.i("Setting user id: $id")
+//    fun setUserId(id: String) {
+//        // Write it to the log
+//        Timber.i("Setting user id: $id")
+//
+//        // Add user id to all subsequent crash reports
+//        // todo #63: Set userId on Sentry reports?
+//    }
 
-        // Add user id to all subsequent crash reports
-        // todo #63: Set userId on Sentry reports?
-    }
+//    fun setCustomKey(key: String, value: String) {
+//        // todo #63: Set custom keys on Sentry reports?
+//    }
 
     suspend fun getLogFileContents(): String? {
         return externalLogFileTree.getLogFileContents()
