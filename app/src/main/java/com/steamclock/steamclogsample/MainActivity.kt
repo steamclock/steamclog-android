@@ -31,7 +31,9 @@ class MainActivity : AppCompatActivity() {
         log_things.setOnClickListener { testLogging() }
         dump_file_button.setOnClickListener { testLogDump() }
         non_fatal.setOnClickListener { testNonFatal() }
-        track_analytic.setOnClickListener { testTrackAnalytic() }
+        track_analytic.setOnClickListener {
+            Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
+        }
         demo_text.setOnLongClickListener {
             copyFileToClipboard()
             true
@@ -149,11 +151,6 @@ class MainActivity : AppCompatActivity() {
             clog.fatal("Fatal message", Throwable("OriginalFatalThrowable"), RedactableParent())
     }
 
-    private fun testTrackAnalytic() {
-        clog.track(AnalyticEvent.TestButtonPressed.id, AnalyticEvent.TestButtonPressed.data)
-        clog.track(AnalyticEvent.TestButtonPressedWithRedactable.id, AnalyticEvent.TestButtonPressedWithRedactable.data)
-    }
-
     private fun testLogDump() = GlobalScope.launch(Dispatchers.Main) {
         demo_text?.text = SteamcLog.getLogFileContents()
     }
@@ -168,7 +165,6 @@ class MainActivity : AppCompatActivity() {
         val clipData = ClipData.newPlainText("File Dump", demo_text?.text)
         clipboardManager.setPrimaryClip(clipData)
         Toast.makeText(applicationContext, "Copied to clipboard", Toast.LENGTH_LONG).show()
-
     }
 
     // Test logging objects

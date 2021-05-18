@@ -87,8 +87,6 @@ dependencies {
 
     implementation project(':steamclog')
 
-    implementation 'com.google.firebase:firebase-analytics-ktx:18.0.2'
-
     // https://github.com/getsentry/sentry-java/releases
     implementation 'io.sentry:sentry-android:4.3.0'
 

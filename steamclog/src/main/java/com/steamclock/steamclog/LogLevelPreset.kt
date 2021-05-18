@@ -59,13 +59,7 @@ sealed class LogLevelPreset {
             is Release -> LogLevel.None
         }
 
-    val analyticsEnabled: Boolean
-        get() = when(this) {
-            is Firehose -> false
-            is Develop -> false
-            is ReleaseAdvanced -> true
-            is Release -> true
-        }
+    val analyticsEnabled = false
 
     override fun toString(): String {
         return "$title(global=$global, console=$console, file=$file, sentry=$sentry)"

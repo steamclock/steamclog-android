@@ -2,13 +2,9 @@
 
 package com.steamclock.steamclog
 
-import android.os.Bundle
-import android.os.Parcelable
-import com.google.firebase.analytics.FirebaseAnalytics
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
-import java.io.Serializable
 
 /**
  * Steamclog
@@ -48,29 +44,15 @@ object SteamcLog {
 
         externalLogFileTree = ExternalLogFileDestination()
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
-
-        // FirebaseAnalytics instance required before we can start tracking analytics
     }
 
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null, firebaseAnalytics: FirebaseAnalytics? = null) {
+    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
         fileWritePath?.let {
             this.config = Config(isDebug, fileWritePath)
             updateTree(externalLogFileTree, true)
         }
 
-        firebaseAnalytics?.let {
-            clog.config.firebaseAnalytics = firebaseAnalytics
-        }
-
         logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
-    }
-
-    /** 
-     * initWith omitting FirebaseAnalytics instance, for applications that
-     * do not wish to use FirebaseAnalytics.
-     */
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
-        initWith(isDebug, fileWritePath, null)
     }
 
     //---------------------------------------------
@@ -112,39 +94,40 @@ object SteamcLog {
         Timber.log(logLevel.javaLevel, wrapper)
     }
 
-    fun track(@NonNls id: String, data: Map<String, Any?>) {
-        if (!config.logLevel.analyticsEnabled) {
-            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
-            return
-        }
-
-        if (config.firebaseAnalytics == null) {
-            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
-            return
-        }
-
-        val bundle = Bundle()
-        data.forEach { (key, value) ->
-            when (value) {
-                is Redactable -> {
-                    bundle.putString(key, value.getRedactedDescription())
-                }
-                is Serializable -> {
-                    bundle.putSerializable(key, value)
-                }
-                is Parcelable -> {
-                    bundle.putParcelable(key, value)
-                }
-                else -> {
-                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
-                    return
-                }
-            }
-        }
-
-        // Obtain the FirebaseAnalytics instance from the config.
-        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
-    }
+    // todo #64 Re-implement track method; was removed when we ported over to using Sentry
+//    fun track(@NonNls id: String, data: Map<String, Any?>) {
+//        if (!config.logLevel.analyticsEnabled) {
+//            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
+//            return
+//        }
+//
+//        if (config.firebaseAnalytics == null) {
+//            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
+//            return
+//        }
+//
+//        val bundle = Bundle()
+//        data.forEach { (key, value) ->
+//            when (value) {
+//                is Redactable -> {
+//                    bundle.putString(key, value.getRedactedDescription())
+//                }
+//                is Serializable -> {
+//                    bundle.putSerializable(key, value)
+//                }
+//                is Parcelable -> {
+//                    bundle.putParcelable(key, value)
+//                }
+//                else -> {
+//                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
+//                    return
+//                }
+//            }
+//        }
+//
+//        // Obtain the FirebaseAnalytics instance from the config.
+//        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
+//    }
 
     //---------------------------------------------
     // Public util methods
