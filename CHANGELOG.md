@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Unreleased 
-
+- Fixed Proguard/R8 crash occurring on Debug builds (#67)
 
 ---
 
