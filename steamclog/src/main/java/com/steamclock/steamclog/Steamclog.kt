@@ -2,6 +2,8 @@
 
 package com.steamclock.steamclog
 
+import io.sentry.Sentry
+import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -136,14 +138,24 @@ object SteamcLog {
      * This should be a fairly obscure ID, not something that could be immediately traced to a
      * specific individual (ie. not an email address)
      */
-//    fun setUserId(id: String) {
-//        // Write it to the log
-//        Timber.i("Setting user id: $id")
-//
-//        // Add user id to all subsequent crash reports
-//        // todo #63: Set userId on Sentry reports?
-//    }
+    fun setUserId(id: String) {
+        // Write it to the log
+        Timber.i("Setting user id: $id")
 
+        // Add user id to all subsequent crash reports
+        val user = User().apply {
+            this.id = id
+        }
+
+        Sentry.setUser(user)
+    }
+
+    fun clearUserId() {
+        Sentry.configureScope { scope ->
+            scope.user = null
+        }
+    }
+    
 //    fun setCustomKey(key: String, value: String) {
 //        // todo #63: Set custom keys on Sentry reports?
 //    }
@@ -166,7 +178,7 @@ object SteamcLog {
     private fun addObjToMessage(@NonNls message: String, obj: Any?): String {
         return when(obj) {
             null -> message
-            is Throwable -> "$message ${obj.message?.let { throwMsg ->" : $throwMsg"}}"
+            is Throwable -> "$message ${obj.message?.let { throwMsg -> " : $throwMsg" }}"
             else -> "$message : ${obj.getRedactedDescription()}"
         }
     }
@@ -190,7 +202,7 @@ object SteamcLog {
             } else {
                 Timber.uproot(tree)
             }
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             // Tree may not be planted, catch exception.
         }
     }
