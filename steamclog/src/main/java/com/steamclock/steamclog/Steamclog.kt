@@ -140,7 +140,7 @@ object SteamcLog {
      */
     fun setUserId(id: String) {
         // Write it to the log
-        Timber.i("Setting user id: $id")
+        logInternal(LogLevel.Info,"Setting user id: $id")
 
         // Add user id to all subsequent crash reports
         val user = User().apply {
