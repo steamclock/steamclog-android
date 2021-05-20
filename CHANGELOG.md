@@ -8,7 +8,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 
 ---
 
-## Jitpack v1.10 : May 20th 2021
+## Jitpack v1.9 : May 20th 2021
 
 - Fixed Proguard/R8 crash occurring on Debug builds (#67)
 - Fixed SetUserId crash
