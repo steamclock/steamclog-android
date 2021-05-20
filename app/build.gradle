@@ -35,7 +35,7 @@ android {
 
     buildTypes {
         debug {
-            debuggable false
+            debuggable true
             minifyEnabled true // Always minify so that we can test proguard
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
