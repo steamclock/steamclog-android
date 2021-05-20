@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Unreleased 
+
+
+---
+
+## Jitpack v1.8 : May 20th 2021
+
 - Fixed Proguard/R8 crash occurring on Debug builds (#67)
 
 ---
