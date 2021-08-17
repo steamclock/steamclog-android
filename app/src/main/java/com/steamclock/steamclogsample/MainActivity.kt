@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
                         LogLevelPreset.Firehose
                     }
                 }
+                demo_text.text = clog.toString()
                 clog.warn("LogLevel changed to ${clog.config.logLevel.title}")
             }
         }
