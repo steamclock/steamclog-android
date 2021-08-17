@@ -1,5 +1,6 @@
 package com.steamclock.steamclog
 
+import android.annotation.SuppressLint
 import android.util.Log
 import timber.log.Timber
 import java.io.File
@@ -41,28 +42,32 @@ internal class SentryDestination : Timber.Tree() {
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
 
-        val breadcrumbMessage = generateSimpleLogMessage(
+        // Always add breadcrumb that indicates the log message.
+        Sentry.addBreadcrumb(generateSimpleLogMessage(
             priority,
             includeEmoji = false,
             wrapper,
             message
-        )
+        ), breadcrumbCategory)
 
         when {
             priority == Log.ERROR && originalThrowable != null -> {
-                // If given an original throwable, capture it
-                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
-                Sentry.captureException(originalThrowable)
+                // We have been given a throwable, if not in the blocked list, capture it.
+                if (SteamcLog.config.blockedThrowables.contains(originalThrowable::class)) {
+                    Sentry.addBreadcrumb("${originalThrowable::class.simpleName} on blocked list, and has " +
+                            "been blocked from being captured as an exception: " +
+                            "${originalThrowable.message}", breadcrumbCategory)
+                } else {
+                    Sentry.captureException(originalThrowable)
+                }
             }
             priority == Log.ERROR -> {
-                // If no throwable given, log error as message (no throwable)
-                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
+                // If no throwable given, capture message as the error
                 Sentry.captureMessage(originalMessage)
             }
             else -> {
-                // Not an error, add breadcrumb only (which should include
-                // both the message and any extra data.
-                Sentry.addBreadcrumb(breadcrumbMessage, breadcrumbCategory)
+                // Not an error; breadcrumb should already be added, so we do not
+                // need to do anything more.
             }
         }
     }

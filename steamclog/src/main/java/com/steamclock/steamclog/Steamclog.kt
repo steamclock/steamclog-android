@@ -7,6 +7,7 @@ import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
+import kotlin.reflect.KClass
 
 /**
  * Steamclog
@@ -48,9 +49,11 @@ object SteamcLog {
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
     }
 
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
+    fun initWith(isDebug: Boolean,
+                 fileWritePath: File? = null,
+                 blockedThrowables: MutableSet<KClass<out Throwable>> = mutableSetOf()) {
         fileWritePath?.let {
-            this.config = Config(isDebug, fileWritePath)
+            this.config = Config(isDebug, fileWritePath, blockedThrowables)
             updateTree(externalLogFileTree, true)
         }
 

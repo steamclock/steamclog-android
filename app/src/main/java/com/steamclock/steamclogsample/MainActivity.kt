@@ -8,10 +8,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.steamclock.steamclog.LogLevelPreset
-import com.steamclock.steamclog.Redactable
-import com.steamclock.steamclog.SteamcLog
-import com.steamclock.steamclog.clog
+import com.steamclock.steamclog.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -31,6 +28,7 @@ class MainActivity : AppCompatActivity() {
         log_things.setOnClickListener { testLogging() }
         dump_file_button.setOnClickListener { testLogDump() }
         non_fatal.setOnClickListener { testNonFatal() }
+        log_blocked_exception.setOnClickListener { testBlockedException() }
         track_analytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
         }
@@ -81,6 +79,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    private fun showMessageIfCrashReportingNotEnabled() {
+        if (clog.config.logLevel.sentry == LogLevel.None) {
+            Toast.makeText(applicationContext,
+                "Set Log Level to Release or Release Advanced to enable crash reporting",
+                Toast.LENGTH_LONG).show()
+
+        }
+    }
 
     private fun testLogging() {
         testVerbose()
@@ -110,12 +116,30 @@ class MainActivity : AppCompatActivity() {
         clog.warn("Warn message with data", RedactableParent())
     }
 
+    private fun testBlockedException() {
+        showMessageIfCrashReportingNotEnabled()
+
+        clog.error("Testing BlockedException1",
+            BlockedException1("This should not trigger a crash report"),
+            null)
+
+        clog.error("Testing BlockedException2",
+            BlockedException2("This should also not trigger a crash report"),
+            null)
+
+        clog.error("Testing AllowedException",
+            AllowedException("This SHOULD trigger a crash report"),
+            null)
+
+        Toast.makeText(applicationContext,
+            "If enabled, crash reporter should have logged AllowedException only",
+            Toast.LENGTH_LONG).show()
+    }
+
     private fun testNonFatal() {
-        // Won't create new tickets
+        showMessageIfCrashReportingNotEnabled()
         clog.info("Running testNonFatal")
 
-        // Should create tickets
-        //
         // NOTE, Sentry seems to apply some grouping logic such that the *same* Throwable thrown
         // in the *same* function will be grouped no matter what messages they are given, such
         // that the messages will overwrite each other.
@@ -146,6 +170,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testFatalCrash() {
+        showMessageIfCrashReportingNotEnabled()
         clog.info("Running testFatalCrash")
 
         // These will crash app

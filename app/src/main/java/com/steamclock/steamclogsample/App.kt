@@ -2,6 +2,9 @@ package com.steamclock.steamclogsample
 
 import android.app.Application
 import com.steamclock.steamclog.clog
+import java.io.IOException
+import java.lang.Exception
+import kotlin.reflect.KClass
 
 /**
  * steamclog
@@ -10,6 +13,11 @@ import com.steamclock.steamclog.clog
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
+        val blocked: MutableSet<KClass<out Throwable>> = mutableSetOf(BlockedException1::class, BlockedException2::class)
+        clog.initWith(BuildConfig.DEBUG, externalCacheDir, blocked)
     }
 }
+
+class BlockedException1(message: String): Exception(message)
+class BlockedException2(message: String): Exception(message)
+class AllowedException(message: String): Exception(message)
