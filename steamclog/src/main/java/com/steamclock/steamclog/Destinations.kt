@@ -301,6 +301,7 @@ private fun generateFullLogMessage(priority: Int,
  * Used mostly for Steamclog to report message using Log (not Timber), since using
  * Timber may lead to infinite calls in the library.
  */
+@SuppressLint("LogNotTimber")
 internal fun logToConsole(message: String) {
     Log.v("steamclog", message)
 }
