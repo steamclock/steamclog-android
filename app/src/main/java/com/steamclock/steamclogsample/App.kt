@@ -1,9 +1,8 @@
 package com.steamclock.steamclogsample
 
 import android.app.Application
+import com.steamclock.steamclog.ThrowableFilter
 import com.steamclock.steamclog.clog
-import java.io.IOException
-import java.lang.Exception
 import kotlin.reflect.KClass
 
 /**
@@ -13,8 +12,20 @@ import kotlin.reflect.KClass
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        val blocked: MutableSet<KClass<out Throwable>> = mutableSetOf(BlockedException1::class, BlockedException2::class)
-        clog.initWith(BuildConfig.DEBUG, externalCacheDir, blocked)
+        clog.initWith(BuildConfig.DEBUG, externalCacheDir)
+        clog.throwableFilter = ThrowableFilter { throwable ->
+            when (throwable) {
+                is BlockedException1 -> {
+                    true
+                }
+                is BlockedException2 -> {
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }
     }
 }
 
