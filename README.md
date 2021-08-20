@@ -183,7 +183,7 @@ Error and Fatal levels have a special signature that allows a given Throwable to
 `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
 If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
-Please note, an error will only be logged if the Throwable is _not_ in the `config.blockedThrowables` set.
+Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `ThrowableBlocker` interface implementation.
 
 ### Exporting Logs
 
