@@ -7,7 +7,6 @@ import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
-import kotlin.reflect.KClass
 
 /**
  * Steamclog
@@ -39,7 +38,7 @@ object SteamcLog {
      * Can be overridden by the application to allow Throwables to be filtered out before
      * being sent as errors to the crash reporting destination.
      */
-    var throwableFilter: ThrowableFilter = ThrowableFilter { false } // By default filter nothing
+    var throwableBlocker: ThrowableBlocker = ThrowableBlocker { false } // By default filter nothing
 
     init {
         // By default plant all trees; setting their level to LogLevel.None will effectively

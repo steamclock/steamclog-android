@@ -1,9 +1,8 @@
 package com.steamclock.steamclogsample
 
 import android.app.Application
-import com.steamclock.steamclog.ThrowableFilter
+import com.steamclock.steamclog.ThrowableBlocker
 import com.steamclock.steamclog.clog
-import kotlin.reflect.KClass
 
 /**
  * steamclog
@@ -13,7 +12,7 @@ class App: Application() {
     override fun onCreate() {
         super.onCreate()
         clog.initWith(BuildConfig.DEBUG, externalCacheDir)
-        clog.throwableFilter = ThrowableFilter { throwable ->
+        clog.throwableBlocker = ThrowableBlocker { throwable ->
             when (throwable) {
                 is BlockedException1 -> {
                     true
