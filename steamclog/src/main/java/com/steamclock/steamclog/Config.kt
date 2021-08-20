@@ -1,7 +1,6 @@
 package com.steamclock.steamclog
 
 import java.io.File
-import kotlin.reflect.KClass
 
 /**
  * Config
@@ -23,12 +22,6 @@ data class Config(
     val fileWritePath: File? = null,
 
     /**
-     * The set of Throwable (& classes that extend Throwable, like Exception) that will
-     * be blocked from being sent as errors to the crash reporting destination.
-     */
-    val blockedThrowables: MutableSet<KClass<out Throwable>> = mutableSetOf(),
-
-    /**
      * Destination logging levels
      */
     var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Firehose else LogLevelPreset.Release,
@@ -48,7 +41,6 @@ data class Config(
         return "Config(" +
                 "\n  logLevel = $logLevel," +
                 "\n  fileWritePath = $fileWritePath," +
-                "\n  blockedThrowables = ${blockedThrowables.map { it.simpleName }}, " +
                 "\n  keepLogsForDays = $keepLogsForDays," +
                 "\n  requireRedacted = $requireRedacted)"
 
