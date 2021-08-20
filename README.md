@@ -97,18 +97,27 @@ clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
  * See https://developer.android.com/training/data-storage for details on the pros and cons of each.
  
  #### Setting up a Throwable/Exception "Block List"
- If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `initWith` method also takes a parameter that defines a set of classes that should not be logged as errors. This is most commonly done to avoid common network connection exceptions from being logged as actionable errors. By default this set is empty, and all Throwables will be logged as errors.
+ If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `throwableBlocker` interface can be overridden to allow the application to determine which Throwables should be be blocked. This can allow us to catch and redirect certain Throwables to be logged as an "App Health Analytic" instead. By default all Throwables will be logged as errors.
  
- This can be setup during initialization:
- ```
- val blockedExceptions: MutableSet<KClass<out Throwable>> = mutableSetOf(BlockedException1::class, BlockedException2::class)
- clog.initWith(BuildConfig.DEBUG, externalCacheDir, blockedExceptions)
- ```
- 
- or at a later time by accessing the config object directly:
- ```
- clog.config.blockedThrowables.add(BlockedException1::class)
- ```
+ This can be setup at any point by implementing the `throwableBlocker` interface:
+```
+clog.throwableBlocker = ThrowableBlocker { throwable ->
+  when (throwable) {
+    is BlockedException1 -> {
+        // For example, we could log this as an analytic.
+        true
+    }
+    is BlockedException2 -> {
+        // For example, we could want to do nothing and ignore this exception.
+        // Or maybe we want to log this as info instead.
+        true
+    }
+    else -> {
+        // The Throwable is not blocked, and will be sent as an error to the crash reporting destination.
+        false
+    }
+}
+```
  
 ### Enabling Sentry Reporting 
 
