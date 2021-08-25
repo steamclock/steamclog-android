@@ -5,6 +5,8 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 
 ## Unreleased 
 
+- Update Sentry from 4.3.0 to 5.1.0
+
 
 ---
 
