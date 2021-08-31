@@ -34,6 +34,12 @@ object SteamcLog {
     var config: Config = Config()
         private set
 
+    /**
+     * Can be overridden by the application to allow Throwables to be filtered out before
+     * being sent as errors to the crash reporting destination.
+     */
+    var throwableBlocker: ThrowableBlocker = ThrowableBlocker { false } // By default filter nothing
+
     init {
         // By default plant all trees; setting their level to LogLevel.None will effectively
         // disable that tree, but we do not uproot it.
@@ -48,7 +54,8 @@ object SteamcLog {
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
     }
 
-    fun initWith(isDebug: Boolean, fileWritePath: File? = null) {
+    fun initWith(isDebug: Boolean,
+                 fileWritePath: File? = null) {
         fileWritePath?.let {
             this.config = Config(isDebug, fileWritePath)
             updateTree(externalLogFileTree, true)

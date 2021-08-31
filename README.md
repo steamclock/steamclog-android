@@ -7,23 +7,24 @@
 An open source library that consolidates/formalizes the logging setup and usage across all of Steamclock's projects.
 
 ## Table of Contents
-  * [Development](#development)
-    + [Deploying new versions](#deploying-new-versions)
-  * [Usage](#usage)
-    + [Installation](#installation)
-    + [Initialization](#initialization)
-      - [Enabling External File Logging](#enabling-external-file-logging)
-    + [Enabling Sentry Reporting](#enabling-sentry-reporting)
-      - [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
-      - [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
-    + [Configuration](#configuration)
-      - [logLevel: LogLevelPreset](#loglevel--loglevelpreset)
-      - [requireRedacted: Bool](#requireredacted--bool)
-    + [Common methods](#common-methods)
-      - [Basic Signatures](#basic-signatures)
-      - [Error and Fatal Specific Signatures](#error-and-fatal-specific-signatures)
-    + [Exporting Logs](#exporting-logs)
-      - [Variable Redaction](#variable-redaction)
+- [Development](#development)
+  * [Deploying new versions](#deploying-new-versions)
+- [Usage](#usage)
+  * [Installation](#installation)
+  * [Initialization](#initialization)
+    + [Enabling External File Logging](#enabling-external-file-logging)
+    + [Setting up a Throwable/Exception "Block List"](#setting-up-a-throwable-exception--block-list-)
+  * [Enabling Sentry Reporting](#enabling-sentry-reporting)
+    + [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
+    + [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
+  * [Configuration](#configuration)
+    + [logLevel: LogLevelPreset](#loglevel--loglevelpreset)
+    + [requireRedacted: Bool](#requireredacted--bool)
+  * [Common methods](#common-methods)
+    + [Basic Signatures](#basic-signatures)
+    + [Error and Fatal Specific Signatures](#error-and-fatal-specific-signatures)
+  * [Exporting Logs](#exporting-logs)
+    + [Variable Redaction](#variable-redaction)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -95,6 +96,28 @@ clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
 ```
  * See https://developer.android.com/training/data-storage for details on the pros and cons of each.
  
+ #### Setting up a Throwable/Exception "Block List"
+ If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `throwableBlocker` interface can be overridden to allow the application to determine which Throwables should be be blocked. This can allow us to catch and redirect certain Throwables to be logged as an "App Health Analytic" instead. By default all Throwables will be logged as errors.
+ 
+ This can be setup at any point by implementing the `throwableBlocker` interface:
+```
+clog.throwableBlocker = ThrowableBlocker { throwable ->
+  when (throwable) {
+    is BlockedException1 -> {
+        // For example, we could log this as an analytic.
+        true
+    }
+    is BlockedException2 -> {
+        // For example, we could want to do nothing and ignore this exception.
+        // Or maybe we want to log this as info instead.
+        true
+    }
+    else -> {
+        // The Throwable is not blocked, and will be sent as an error to the crash reporting destination.
+        false
+    }
+}
+```
  
 ### Enabling Sentry Reporting 
 
@@ -160,6 +183,7 @@ Error and Fatal levels have a special signature that allows a given Throwable to
 `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
 If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
+Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `ThrowableBlocker` interface implementation.
 
 ### Exporting Logs
 

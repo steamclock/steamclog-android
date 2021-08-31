@@ -1,6 +1,7 @@
 package com.steamclock.steamclogsample
 
 import android.app.Application
+import com.steamclock.steamclog.ThrowableBlocker
 import com.steamclock.steamclog.clog
 
 /**
@@ -10,6 +11,23 @@ import com.steamclock.steamclog.clog
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
+        clog.initWith(BuildConfig.DEBUG, externalCacheDir)
+        clog.throwableBlocker = ThrowableBlocker { throwable ->
+            when (throwable) {
+                is BlockedException1 -> {
+                    true
+                }
+                is BlockedException2 -> {
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }
     }
 }
+
+class BlockedException1(message: String): Exception(message)
+class BlockedException2(message: String): Exception(message)
+class AllowedException(message: String): Exception(message)

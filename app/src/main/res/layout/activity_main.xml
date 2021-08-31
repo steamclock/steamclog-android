@@ -113,10 +113,14 @@
                 android:text="Set UserId (1234)"
                 android:layout_gravity="center"/>
 
-            <View
+            <Button
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:id="@+id/log_blocked_exception"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="0dp" />
+                android:layout_height="wrap_content"
+                android:text="Log Blocked Exception"
+                android:layout_gravity="center"/>
 
         </LinearLayout>
 

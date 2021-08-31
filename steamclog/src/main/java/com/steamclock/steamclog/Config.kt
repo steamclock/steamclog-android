@@ -34,7 +34,7 @@ data class Config(
     /**
      * Indicates if objects being logged must implement the redacted interface.
      */
-    var requireRedacted: Boolean = false,
+    var requireRedacted: Boolean = false
 
 ) {
     override fun toString(): String {
@@ -43,6 +43,7 @@ data class Config(
                 "\n  fileWritePath = $fileWritePath," +
                 "\n  keepLogsForDays = $keepLogsForDays," +
                 "\n  requireRedacted = $requireRedacted)"
+
     }
 }
 

@@ -4,9 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Unreleased 
-
+- Added ThrowableBlocker functional interface to allow specific Throwables/Exceptions to be suppressed from being sent as an error to the crash reporting destination (#22)
 - Update Sentry from 4.3.0 to 5.1.0
-
 
 ---
 
