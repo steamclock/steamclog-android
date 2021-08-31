@@ -48,27 +48,22 @@ android {
 
 // Defaults taken directly from https://docs.sentry.io/platforms/android/
 sentry {
-    // Disables or enables the automatic configuration of ProGuard
-    // for Sentry.  This injects a default config for ProGuard so
-    // you don't need to do it manually.
-    autoProguardConfig true
-
     // Enables or disables the automatic upload of mapping files
     // during a build.  If you disable this, you'll need to manually
     // upload the mapping files with sentry-cli when you do a release.
-    autoUpload true
+    autoUpload = true
 
     // Disables or enables the automatic configuration of Native Symbols
     // for Sentry. This executes sentry-cli automatically so
     // you don't need to do it manually.
     // Default is disabled.
-    uploadNativeSymbols false
+    uploadNativeSymbols = false
 
     // Does or doesn't include the source code of native code for Sentry.
     // This executes sentry-cli with the --include-sources param. automatically so
     // you don't need to do it manually.
     // Default is disabled.
-    includeNativeSources false
+    includeNativeSources = false
 }
 
 dependencies {
@@ -86,6 +81,6 @@ dependencies {
     implementation project(':steamclog')
 
     // https://github.com/getsentry/sentry-java/releases
-    implementation 'io.sentry:sentry-android:4.3.0'
+    implementation 'io.sentry:sentry-android:5.1.0'
 
 }
