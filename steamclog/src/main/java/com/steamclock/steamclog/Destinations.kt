@@ -230,7 +230,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     internal suspend fun getLogFileContents(): String? {
         removeOldLogFiles()
         val logBuilder = StringBuilder()
-        getExternalLogDirectory()?.listFiles()?.forEach { file ->
+        getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }?.forEach { file ->
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
