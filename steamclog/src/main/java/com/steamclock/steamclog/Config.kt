@@ -32,6 +32,11 @@ data class Config(
     var keepLogsForDays: Int = 3,
 
     /**
+     *  Configuration for auto-rotating file behaviour
+     */
+    var autoRotateConfig: AutoRotateConfig = AutoRotateConfig(),
+
+    /**
      * Indicates if objects being logged must implement the redacted interface.
      */
     var requireRedacted: Boolean = false
