@@ -2,12 +2,11 @@ package com.steamclock.steamclog
 
 import android.annotation.SuppressLint
 import android.util.Log
+import io.sentry.Sentry
 import timber.log.Timber
 import java.io.File
-import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.*
-import io.sentry.Sentry
 
 /**
  * Destinations
@@ -105,8 +104,12 @@ internal class ConsoleDestination: Timber.DebugTree() {
  */
 internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var fileNamePrefix: String = "sclog"
-    private var fileNameTimestamp = "yyyy_MM_dd"
     private var fileExt = "txt"
+
+    private var rotatingIndexes = (0 until 10).map { it }
+
+    private var cachedCurrentLogFile: File? = null
+    private var currentLogFileCachedTime: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.file, priority)
@@ -157,11 +160,51 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     private fun getExternalFile(): File? {
-        val date = SimpleDateFormat(fileNameTimestamp, Locale.US).format(Date())
-        val filename = "${fileNamePrefix}_${date}.${fileExt}"
+        val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // (defaults to 10 minutes
+
+        if (isCachedLogFileValid(expiryMs)) {
+            return cachedCurrentLogFile
+        }
+
+        val currentFile = findAvailableLogFile(expiryMs)
+        updateCachedLogFile(currentFile)
+        return currentFile
+    }
+
+    private fun isCachedLogFileValid(expiryMs: Long): Boolean {
+        // if you have a cached log file and you checked it within the expiry window
+        val now = Date().time
+        val cachedCurrentLogFile = cachedCurrentLogFile
+        val currentLogFileCachedTime = currentLogFileCachedTime
+        return cachedCurrentLogFile != null &&
+                currentLogFileCachedTime != null &&
+                now - currentLogFileCachedTime < expiryMs
+    }
+
+    private fun updateCachedLogFile(file: File?) {
+        cachedCurrentLogFile = file
+        currentLogFileCachedTime = Date().time
+    }
+
+    private fun findAvailableLogFile(expiryMs: Long): File? {
+        val now = Date().time
+        val possibleLogFiles = rotatingIndexes.map { index ->
+            val filename = "${fileNamePrefix}_${index}.${fileExt}"
+            File(getExternalLogDirectory(), filename)
+        }
 
         return try {
-            File(getExternalLogDirectory(), filename)
+            // attempt to find an empty file or one within the expiry window
+            var currentFile = possibleLogFiles.firstOrNull { file ->
+                val isExpired = (now - file.lastModified() > expiryMs)
+                if (!file.exists()) true else !isExpired
+            }
+            // if there are no available files, clear the oldest one and use it
+            if (currentFile == null) {
+                currentFile = possibleLogFiles.minByOrNull { it.lastModified() }
+                currentFile?.writeText("")
+            }
+            currentFile
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
             logToConsole("HTMLFileTree failed to getExternalFile: $e")
