@@ -160,7 +160,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     private fun getExternalFile(): File? {
-        val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // (defaults to 10 minutes
+        val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
             return cachedCurrentLogFile
