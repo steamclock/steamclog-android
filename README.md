@@ -91,8 +91,9 @@ Out of the box, Steamclog will have support for
 The `Steamclog.initWith` method can be used to enable external logging; this method only needs to be called once, and can be done in your Application object's `onCreate` method.
 
 To enable Steamclog to write to the device, you must specify where the files should be stored, this is most easily done by passing along the application's `externalCacheDir` or `cacheDir` references.
+You can specify how long one file will be used for between rotations using `fileRotationSeconds`. The default value is 600 seconds, or 10 minutes.
 ```
-clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir)
+clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir, fileRotationSeconds = 600)
 ```
  * See https://developer.android.com/training/data-storage for details on the pros and cons of each.
  
