@@ -9,5 +9,9 @@ data class AutoRotateConfig(
     /**
      * The number of seconds before a log file is rotated
      */
-    val fileRotationSeconds: Long = 600 // matching iOS
-)
+    val fileRotationSeconds: Long = defaultFileRotationSeconds // matching iOS
+) {
+    companion object {
+        const val defaultFileRotationSeconds = 600L
+    }
+}
