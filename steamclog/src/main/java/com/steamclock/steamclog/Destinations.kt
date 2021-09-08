@@ -106,7 +106,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var fileNamePrefix: String = "sclog"
     private var fileExt = "txt"
 
-    private var rotatingIndexes = (0 until 10).map { it }
+    private var rotatingIndexes = List(10) { it }
 
     private var cachedCurrentLogFile: File? = null
     private var currentLogFileCachedTime: Long? = null
