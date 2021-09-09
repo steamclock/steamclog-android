@@ -55,9 +55,10 @@ object SteamcLog {
     }
 
     fun initWith(isDebug: Boolean,
-                 fileWritePath: File? = null) {
+                 fileWritePath: File? = null,
+                 fileRotationSeconds: Long = AutoRotateConfig.defaultFileRotationSeconds) {
         fileWritePath?.let {
-            this.config = Config(isDebug, fileWritePath)
+            this.config = Config(isDebug, fileWritePath, autoRotateConfig = AutoRotateConfig(fileRotationSeconds))
             updateTree(externalLogFileTree, true)
         }
 
