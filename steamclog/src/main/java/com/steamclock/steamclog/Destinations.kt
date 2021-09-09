@@ -174,7 +174,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
         // if you have a cached log file and you checked it within the expiry window
         val now = Date().time
-        val cachedCurrentLogFile = cachedCurrentLogFile
         val currentLogFileCachedTime = currentLogFileCachedTime
         return cachedCurrentLogFile != null &&
                 currentLogFileCachedTime != null &&
