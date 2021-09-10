@@ -4,8 +4,8 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'io.sentry.android.gradle' // Sentry Proguard/R8 mappings
 
 repositories {
-    jcenter()
     mavenCentral()
+    jcenter() // Deprecated
 }
 
 android {
