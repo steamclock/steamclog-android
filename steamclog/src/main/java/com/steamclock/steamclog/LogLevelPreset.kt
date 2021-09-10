@@ -7,61 +7,44 @@ package com.steamclock.steamclog
  */
 sealed class LogLevelPreset {
 
-    /// Disk: verbose, system: verbose, remote: none
-    object Firehose: LogLevelPreset()
-
-    /// Disk: none, system: debug, remote: none
-    object Develop: LogLevelPreset()
-
-    /// Disk: verbose, system: none, remote: warn
+    object DebugVerbose: LogLevelPreset()
+    object Debug: LogLevelPreset()
     object ReleaseAdvanced: LogLevelPreset()
-
-    /// Disk: none, system: none, remote: warn
     object Release: LogLevelPreset()
 
     val title: String
         get() = when(this) {
-            is Firehose -> "Firehose"
-            is Develop -> "Develop"
-            is ReleaseAdvanced -> "ReleaseAdvanced"
+            is DebugVerbose -> "DebugVerbose"
+            is Debug -> "Debug"
             is Release -> "Release"
-        }
-
-    val global: LogLevel
-        get() = when(this) {
-            is Firehose -> LogLevel.Info
-            is Develop -> LogLevel.Info
-            is ReleaseAdvanced -> LogLevel.Info
-            is Release -> LogLevel.Info
-        }
-
-    val sentry: LogLevel
-        get() = when(this) {
-            is Firehose -> LogLevel.None
-            is Develop -> LogLevel.None
-            is ReleaseAdvanced -> LogLevel.Verbose
-            is Release -> LogLevel.Info
-        }
-
-    val file: LogLevel
-        get() = when(this) {
-            is Firehose -> LogLevel.Verbose
-            is Develop -> LogLevel.None
-            is ReleaseAdvanced -> LogLevel.Verbose
-            is Release -> LogLevel.None
+            is ReleaseAdvanced -> "ReleaseAdvanced"
         }
 
     val console: LogLevel
         get() = when(this) {
-            is Firehose -> LogLevel.Verbose
-            is Develop -> LogLevel.Debug
-            is ReleaseAdvanced -> LogLevel.None
+            is DebugVerbose -> LogLevel.Verbose
+            is Debug -> LogLevel.Debug
             is Release -> LogLevel.None
+            is ReleaseAdvanced -> LogLevel.None
         }
 
-    val analyticsEnabled = false
+    val disk: LogLevel
+        get() = when(this) {
+            is DebugVerbose -> LogLevel.Verbose
+            is Debug -> LogLevel.Debug
+            is Release -> LogLevel.Info
+            is ReleaseAdvanced -> LogLevel.Debug
+        }
+
+    val remote: LogLevel
+        get() = when(this) {
+            is DebugVerbose -> LogLevel.None
+            is Debug -> LogLevel.None
+            is Release -> LogLevel.Info
+            is ReleaseAdvanced -> LogLevel.Debug
+        }
 
     override fun toString(): String {
-        return "$title(global=$global, console=$console, file=$file, sentry=$sentry)"
+        return "$title(console=$console, disk=$disk, remote=$remote)"
     }
 }

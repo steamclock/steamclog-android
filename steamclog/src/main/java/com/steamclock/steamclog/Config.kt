@@ -24,7 +24,7 @@ data class Config(
     /**
      * Destination logging levels
      */
-    var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Firehose else LogLevelPreset.Release,
+    var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Debug else LogLevelPreset.Release,
 
     /**
      *  Determines how long generated log files are kept for.

@@ -21,7 +21,7 @@ import java.util.*
 // they are to consume the logged item or not.
 //-----------------------------------------------------------------------------
 /**
- * SentryDestination
+ * SentryDestination == remote
  */
 internal class SentryDestination : Timber.Tree() {
 
@@ -30,7 +30,7 @@ internal class SentryDestination : Timber.Tree() {
     }
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.sentry, priority)
+        return isLoggable(SteamcLog.config.logLevel.remote, priority)
     }
 
     /**
@@ -99,7 +99,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
 }
 
 /**
- * ExternalLogFileDestination
+ * ExternalLogFileDestination == Disk
  * DebugTree gives us access to override createStackElementTag
  */
 internal class ExternalLogFileDestination : Timber.DebugTree() {
@@ -112,7 +112,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var currentLogFileCachedTime: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.file, priority)
+        return isLoggable(SteamcLog.config.logLevel.disk, priority)
     }
 
     //---------------------------------------------
