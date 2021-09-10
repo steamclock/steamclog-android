@@ -1,10 +1,13 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '1.5.20'
+    ext.kotlin_version = '1.5.30'
+    ext.timber = '5.0.1'
+    ext.sentry = '5.1.2'
+
     repositories {
         google()
-        jcenter()
         mavenCentral()
+        jcenter() // Deprecated
     }
 
     dependencies {
@@ -18,7 +21,7 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+        jcenter() // Deprecated
     }
 }
 
