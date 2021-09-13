@@ -11,23 +11,20 @@ An open source library that consolidates/formalizes the logging setup and usage 
   * [Deploying new versions](#deploying-new-versions)
 - [Usage](#usage)
   * [Installation](#installation)
-  * [Initialization](#initialization)
-    + [Enabling External File Logging](#enabling-external-file-logging)
-    + [Setting up a Throwable/Exception "Block List"](#setting-up-a-throwable-exception--block-list-)
+  * [Initialization (Required)](#initialization--required-)
+  * [Initialization (Optional)](#initialization--optional-)
   * [Enabling Sentry Reporting](#enabling-sentry-reporting)
-    + [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
-    + [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
-  * [Configuration](#configuration)
-    + [logLevel: LogLevelPreset](#loglevel--loglevelpreset)
-    + [requireRedacted: Bool](#requireredacted--bool)
-  * [Common methods](#common-methods)
+    + [Enabling a Throwable/Exception "Block List"](#enabling-a-throwable-exception--block-list-)
+  * [Common logging methods](#common-logging-methods)
     + [Basic Signatures](#basic-signatures)
     + [Error and Fatal Specific Signatures](#error-and-fatal-specific-signatures)
   * [Exporting Logs](#exporting-logs)
     + [Variable Redaction](#variable-redaction)
+  * [Firebase](#firebase)
+    + [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
+    + [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
 
 ## Development
 
@@ -77,30 +74,64 @@ Most recent version can be found [here](https://github.com/steamclock/steamclog-
 
 4. `Steamclog` singleton should now be available
 
-### Initialization
+### Initialization (Required)
 
-Steamclog can also be accessed via the `clog` typealias.
+To initialize Steamclog call `clog.initWith` in your app's custom Application class's `onCreate` method.
+This function takes the following required properties:
+* `isDebug` (Boolean): If application is considered to be a debug build; in most cases this is your application's `BuildConfig.DEBUG` flag. Determines the default Log Level Presets Steamclog selects for the build.
+* `fileWritePath` (File): Location where the file destination will write to. This is most easily done by passing along the application's `externalCacheDir` or `cacheDir` file paths.
 
-Out of the box, Steamclog will have support for
- * Printing to the console (no setup required)
- * External file logging (setup required)
- * Sentry reporting  (setup required)
-
-#### Enabling External File Logging
-
-The `Steamclog.initWith` method can be used to enable external logging; this method only needs to be called once, and can be done in your Application object's `onCreate` method.
-
-To enable Steamclog to write to the device, you must specify where the files should be stored, this is most easily done by passing along the application's `externalCacheDir` or `cacheDir` references.
-You can specify how long one file will be used for between rotations using `fileRotationSeconds`. The default value is 600 seconds, or 10 minutes.
+Example:
 ```
-clog.initWith(BuildConfig.DEBUG, fileWritePath = externalCacheDir, fileRotationSeconds = 600)
+class App: Application() {
+...
+   override fun onCreate() {
+      clog.initWith(BuildConfig.DEBUG, externalCacheDir)
+   }      
 ```
- * See https://developer.android.com/training/data-storage for details on the pros and cons of each.
- 
- #### Setting up a Throwable/Exception "Block List"
- If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `throwableBlocker` interface can be overridden to allow the application to determine which Throwables should be be blocked. This can allow us to catch and redirect certain Throwables to be logged as an "App Health Analytic" instead. By default all Throwables will be logged as errors.
- 
- This can be setup at any point by implementing the `throwableBlocker` interface:
+
+Once initialized, this will give out of the box support for printing to the console and writing to a file. Further steps are required to enable remote logging to Sentry.
+
+### Initialization (Optional)
+
+The Config object has the following optional properties which may be overridden if desired. These may be set initially when calling `initWith` or updated at run time.
+
+`Config`:
+* `keepLogsForDays` (Int, default 3): Determines how long generated log files are kept for.
+* `autoRotateConfig` (AutoRotateConfig, see below): Configuration for auto-rotating file behaviour
+* `requireRedacted` (Boolean, default false): Indicates if any extra objects being logged must implement the redacted interface. For apps with very sensitive data models, it is suggested to set this to true.
+* `logLevel`: (LogLevelPreset, default based on `isDebug` setting): Destination logging levels; it is recommended to use the defaults set by Steamclog instead of initializing these manually. In special cases where more data is desired, update this property.
+
+`AutoRotateConfig`:
+* `fileRotationSeconds` (Long, default 600): The number of seconds before a log file is rotated; default of 600 == 10 mins.
+
+Example:
+```
+class App: Application() {
+...
+   override fun onCreate() {
+        clog.initWith(Config(
+            BuildConfig.DEBUG,
+            externalCacheDir,
+            keepLogsForDays = 3,
+            autoRotateConfig = AutoRotateConfig(fileRotationSeconds = 600L),
+            requireRedacted = false
+        ))
+   }      
+```
+
+### Enabling Sentry Reporting
+
+To setup Sentry reporting in your project, see https://docs.sentry.io/platforms/android/
+
+You will need to create a new application on the Sentry dashboard which requires admin access. If your project required Proguard or R8 please see the above Sentry documentation as some settings may need to be put in place to properly upload the mappings accordingly.
+
+Once your main project has Sentry enabled no further work should be required for Steamclog to report to it.
+
+#### Enabling a Throwable/Exception "Block List"
+If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `throwableBlocker` interface can be overridden to allow the application to determine which Throwables should be be blocked. This can allow us to catch and redirect certain Throwables to be logged as an "App Health Analytic" instead. By default all Throwables will be logged as errors.
+
+This can be setup at any point by implementing the `throwableBlocker` interface:
 ```
 clog.throwableBlocker = ThrowableBlocker { throwable ->
   when (throwable) {
@@ -119,50 +150,10 @@ clog.throwableBlocker = ThrowableBlocker { throwable ->
     }
 }
 ```
- 
-### Enabling Sentry Reporting 
 
-To setup Sentry reporting in your project, see https://docs.sentry.io/platforms/android/
+### Common logging methods
 
-You will need to create a new application on the Sentry dashboard which requires admin access. If your project required Proguard or R8 please see the above Sentry documentation as some settings may need to be put in place to properly upload the mappings accordingly.
-
-Once your main project has Sentry enabled no further work should be required for Steamclog to report to it.
- 
-#### Enabling Firebase Crashlytics (No longer supported)
-
-_Firebase Crashlytics is no longer a supported destination for crash reporting_
-
-
-#### Enabling Firebase Analytics (No longer supported)
-
-_Firebase Analytics is no longer a supported for tracking analytics; tracking must be handled manually by the calling project_
-
-
-### Configuration
-
-SteamcLog has a number of configuration options
-
-#### logLevel: LogLevelPreset
-Default value is: `develop`.
-There are four log level presets available, each of which has different logging outputs.
-
-| LogLevelPreset    | Disk Level | System Level | Remote Level |
-|-------------------|------------|--------------|--------------|
-| `firehose`        | verbose    | verbose      | none         |
-| `develop`         | none       | debug        | none         |
-| `release`         | none       | none         | info         |
-| `releaseAdvanced` | verbose    | none         | verbose         |
-
-In most cases, you'll be able to get by using `firehose` or `develop` on debug builds, and `release` or `releaseAdvanced` for production builds.
-Note that if you're using `releaseAdvanced` you must build in a way for the client to email you the disk logs.
-
-#### requireRedacted: Bool
-Default value is `false`.
-Require that all logged objects conform to Redacted or are all redacted by default.
-
-### Common methods
-
-From there, you can use `clog` anywhere in your application with the following levels. Note that availability of these logs will depend on your Configuration's `logLevel`.
+See https://coda.io/d/SteamcLog_dmRQYLbOZrl/API-Docs_sufrm#_luAYL for full details
 
 `clog.verbose` - Log all of the things! Probably only output to the console by developers, never to devices.
 `clog.debug` - Info that is interesting to developers, any information that may be helpful when debugging. Should be stored to system logs for debug builds but never stored in production.
@@ -180,7 +171,7 @@ Each of these functions has the following 2 available signatures:
 If `requireRedacted` is set to `true`, then the Any object *must* implement the Redactable interface, else all properties will be shown as `<REDACTED>`.
 
 #### Error and Fatal Specific Signatures
-Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log. 
+Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log.
 `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
 If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
@@ -209,5 +200,15 @@ clog.info("Testing Redactable Class", User("shayla", "me@email.com", "123456"))
 ```
 And the log will output:
 `Testing Redactable Class : User(bankingSecret=<redacted>, email=<redacted>, name=shayla)`
+
+### Firebase
+
+#### Enabling Firebase Crashlytics (No longer supported)
+
+_Firebase Crashlytics is no longer a supported destination for crash reporting_
+
+#### Enabling Firebase Analytics (No longer supported)
+
+_Firebase Analytics is no longer a supported for tracking analytics; tracking must be handled manually by the calling project_
 
 
