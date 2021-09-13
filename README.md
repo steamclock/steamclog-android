@@ -1,19 +1,19 @@
 # SteamcLog Android
 
-[Current Proposal Spec](https://docs.google.com/document/d/1GeFAMBn_ZrIP7qVLzcYlCfqDnPiCrgMa0JdrU8HRx94/edit?usp=sharing)
+[Technical Documentation](https://coda.io/d/SteamcLog_dmRQYLbOZrl)
 
-[iOS Version](https://github.com/steamclock/steamclog)
+[iOS Repo](https://github.com/steamclock/steamclog)
 
 An open source library that consolidates/formalizes the logging setup and usage across all of Steamclock's projects.
 
 ## Table of Contents
-- [Development](#development)
-  * [Deploying new versions](#deploying-new-versions)
 - [Usage](#usage)
   * [Installation](#installation)
   * [Initialization (Required)](#initialization--required-)
   * [Initialization (Optional)](#initialization--optional-)
   * [Enabling Sentry Reporting](#enabling-sentry-reporting)
+    + [If application already has Sentry setup:](#if-application-already-has-sentry-setup-)
+    + [If project does not have Sentry setup:](#if-project-does-not-have-sentry-setup-)
     + [Enabling a Throwable/Exception "Block List"](#enabling-a-throwable-exception--block-list-)
   * [Common logging methods](#common-logging-methods)
     + [Basic Signatures](#basic-signatures)
@@ -23,28 +23,10 @@ An open source library that consolidates/formalizes the logging setup and usage 
   * [Firebase](#firebase)
     + [Enabling Firebase Crashlytics (No longer supported)](#enabling-firebase-crashlytics--no-longer-supported-)
     + [Enabling Firebase Analytics (No longer supported)](#enabling-firebase-analytics--no-longer-supported-)
+- [Development](#development)
+  * [Deploying new versions](#deploying-new-versions)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
-## Development
-
-### Deploying new versions
-
-These steps are for developers looking to create a new release of the Steamclog library; if this does not pertain to you, please skip down to the **Installation** section.
-
-Currently we are hosting the library on [Jitpack](https://jitpack.io/), to deploy a new version of the library:
-
-1. Push all changes to master
-2. From within the GitHub repo, navigate to the Code panel; on the right side should be a **Releases** section
-3. Click on **Releases** (which should take you [here](https://github.com/steamclock/steamclog-android/releases))
-4. Make note of the latest release version name (ie. v1.1)
-5. Click the **Draft a new release** button on the right
-6. Set the **Tag Version**; it's best use the last release version as a guide (ie. set as v1.2)
-7. Set **Release Title** to be "Steamclog <Version>"
-8. Description is optional, could set changelog here if desired
-9. Click the **Publish Release** button at the bottom
-10. Verify on the [Jitpack page for the Steamclog project](https://jitpack.io/#steamclock/steamclog-android) that the new version is available
-11. Update projects using Steamclog with the new version
 
 ## Usage
 
@@ -122,11 +104,23 @@ class App: Application() {
 
 ### Enabling Sentry Reporting
 
-To setup Sentry reporting in your project, see https://docs.sentry.io/platforms/android/
+#### If application already has Sentry setup:
+* Remove the sentry library import from your app `build.gradle`; steamclog will import this for you now.
 
-You will need to create a new application on the Sentry dashboard which requires admin access. If your project required Proguard or R8 please see the above Sentry documentation as some settings may need to be put in place to properly upload the mappings accordingly.
+That should be it! Steamclog should now be responsible for calling all Sentry commands using the Sentry dsn values already setup on the project.
 
-Once your main project has Sentry enabled no further work should be required for Steamclog to report to it.
+#### If project does not have Sentry setup:
+If the application is **not** setup to report to Sentry yet, do the following:
+1. Create a new application on the Sentry dashboard; see the `Step 1: Create the project` section on https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/create-new-project/ for full details, making sure to select Android as the platform. You do not need to worry about setting up alerts at this time. Once completed, you should be given a Sentry DSN string; hold onto this for now.
+2. In your application's `AndroidManifest` file add the following line to the application object. And that should be it! Steamclog will use this dsn value when reporting to Sentry.
+    ```
+    <meta-data android:name="io.sentry.dsn" android:value="<Your Sentry DSN String from step 1" />
+    ```
+
+3. (Optional, if your project makes use of Proguard or R8) In your app's `build.gradle` file, add the following plugin. See https://github.com/getsentry/sentry-android-gradle-plugin for the most current release version. This plugin is responsible for uploading the mappings for the build to Sentry so that we get nice, readable stack traces.
+    ```
+    'io.sentry.android.gradle' 
+    ```
 
 #### Enabling a Throwable/Exception "Block List"
 If you'd like to suppress a Throwable or Exception from _ever_ being logged as an error in your crash reporting system, the `throwableBlocker` interface can be overridden to allow the application to determine which Throwables should be be blocked. This can allow us to catch and redirect certain Throwables to be logged as an "App Health Analytic" instead. By default all Throwables will be logged as errors.
@@ -211,4 +205,23 @@ _Firebase Crashlytics is no longer a supported destination for crash reporting_
 
 _Firebase Analytics is no longer a supported for tracking analytics; tracking must be handled manually by the calling project_
 
+## Development
+
+### Deploying new versions
+
+These steps are for developers looking to create a new release of the Steamclog library; if this does not pertain to you, please skip down to the **Installation** section.
+
+Currently we are hosting the library on [Jitpack](https://jitpack.io/), to deploy a new version of the library:
+
+1. Push all changes to master
+2. From within the GitHub repo, navigate to the Code panel; on the right side should be a **Releases** section
+3. Click on **Releases** (which should take you [here](https://github.com/steamclock/steamclog-android/releases))
+4. Make note of the latest release version name (ie. v1.1)
+5. Click the **Draft a new release** button on the right
+6. Set the **Tag Version**; it's best use the last release version as a guide (ie. set as v1.2)
+7. Set **Release Title** to be "Steamclog <Version>"
+8. Description is optional, could set changelog here if desired
+9. Click the **Publish Release** button at the bottom
+10. Verify on the [Jitpack page for the Steamclog project](https://jitpack.io/#steamclock/steamclog-android) that the new version is available
+11. Update projects using Steamclog with the new version
 
