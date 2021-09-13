@@ -1,7 +1,5 @@
 # SteamcLog Android
 
-[Technical Documentation](https://coda.io/d/SteamcLog_dmRQYLbOZrl)
-
 [iOS Repo](https://github.com/steamclock/steamclog)
 
 An open source library that consolidates/formalizes the logging setup and usage across all of Steamclock's projects.
