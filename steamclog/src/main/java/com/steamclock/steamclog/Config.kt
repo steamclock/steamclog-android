@@ -9,37 +9,38 @@ import java.io.File
  */
 data class Config(
     /**
-     * BuildConfig is tied to the module (ie. the Steamclog library module), so we cannot use it to determine
+     * Required; BuildConfig is tied to the module (ie. the Steamclog library module), so we cannot use it to determine
      * a default logLevel as this will always be set to false when the library is being imported via JitPack.
      * As such this info must be given to us by the application.
      */
-    val isDebug: Boolean = false,
+     val isDebug: Boolean,
 
     /**
-     * Location where the app wishes to store any log files generated (ex. externalCacheDir)
+     * Required; Location where the app wishes to store any log files generated (ex. externalCacheDir)
      * Required on creation and will not change.
      */
-    val fileWritePath: File? = null,
+    val fileWritePath: File?,
 
     /**
-     * Destination logging levels
-     */
-    var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Debug else LogLevelPreset.Release,
-
-    /**
-     *  Determines how long generated log files are kept for.
+     *  Optional; Determines how long generated log files are kept for.
      */
     var keepLogsForDays: Int = 3,
 
     /**
-     *  Configuration for auto-rotating file behaviour
+     *  Optional; Configuration for auto-rotating file behaviour
      */
     var autoRotateConfig: AutoRotateConfig = AutoRotateConfig(),
 
     /**
-     * Indicates if objects being logged must implement the redacted interface.
+     * Optional; Indicates if objects being logged must implement the redacted interface.
      */
-    var requireRedacted: Boolean = false
+    var requireRedacted: Boolean = false,
+
+    /**
+     * Optional; Destination logging levels. In most cases we should use the default values, but
+     * could be changed at runtime to allow for more detailed reporting.
+     */
+    var logLevel: LogLevelPreset = if (isDebug) LogLevelPreset.Debug else LogLevelPreset.Release
 
 ) {
     override fun toString(): String {
