@@ -8,6 +8,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Update Sentry from 4.3.0 to 5.1.0
 - [1] Add log rotation functionality
 - Update Log Level Presets to match specs from TechWG discussion (#83)
+- Updated to Gradle 7.0; updated 3rd party libraries (#86)
 
 ---
 
