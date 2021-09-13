@@ -41,8 +41,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         level_selector.setSelection(when (clog.config.logLevel) {
-            LogLevelPreset.Firehose -> 0
-            LogLevelPreset.Develop -> 1
+            LogLevelPreset.DebugVerbose -> 0
+            LogLevelPreset.Debug -> 1
             LogLevelPreset.Release -> 2
             LogLevelPreset.ReleaseAdvanced -> 3
             else -> 0
@@ -59,10 +59,10 @@ class MainActivity : AppCompatActivity() {
             ) {
                 clog.config.logLevel = when (position) {
                     0 -> {
-                        LogLevelPreset.Firehose
+                        LogLevelPreset.DebugVerbose
                     }
                     1 -> {
-                        LogLevelPreset.Develop
+                        LogLevelPreset.Debug
                     }
                     2 -> {
                         LogLevelPreset.Release
@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
                         LogLevelPreset.ReleaseAdvanced
                     }
                     else -> {
-                        LogLevelPreset.Firehose
+                        LogLevelPreset.DebugVerbose
                     }
                 }
                 demo_text.text = clog.toString()
@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun showMessageIfCrashReportingNotEnabled() {
-        if (clog.config.logLevel.sentry == LogLevel.None) {
+        if (clog.config.logLevel.remote == LogLevel.None) {
             Toast.makeText(applicationContext,
                 "Set Log Level to Release or Release Advanced to enable crash reporting",
                 Toast.LENGTH_LONG).show()
