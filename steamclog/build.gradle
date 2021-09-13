@@ -1,13 +1,13 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.github.steamclock'
-// Note, do not apply sentry plugins here; must be done in application module
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+    // Note, do not apply sentry plugins here; must be done in application module
+}
 
 android {
     compileSdkVersion 30
-    buildToolsVersion "29.0.3"
+    buildToolsVersion "30.0.3"
 
     // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
     // Added for Sentry support
@@ -21,8 +21,6 @@ android {
         targetSdkVersion 30
         versionCode 2
         versionName "1.1"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
 
@@ -41,17 +39,9 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'androidx.core:core-ktx:1.3.2'
-    implementation 'androidx.appcompat:appcompat:1.2.0'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-
-    implementation 'com.jakewharton.timber:timber:4.7.1'
-
-    // https://github.com/getsentry/sentry-java/releases
-    // Required so that we can reference the Sentry class
-    implementation 'io.sentry:sentry-android:5.1.0'
-
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+    implementation "com.jakewharton.timber:timber:$timber"
+    // https://github.com/getsentry/sentry-java/releases
+    implementation "io.sentry:sentry-android:$sentry"
 }

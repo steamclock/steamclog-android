@@ -276,7 +276,14 @@ internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Bool
  * This is based on how Timber generates the stacktrace location for itself normally.
  */
 private fun createCustomStackElementTag(): String {
-    val SC_CALL_STACK_INDEX = 9 // Need to go back X in the call stack to get to the actual calling method.
+    /**
+     * How many items we need to "go back" in the call stack to get to method that called our
+     * steamclog logging method.
+     *
+     * NOTE: This number may change when libraries are updated, as those updates may affect the
+     * state of the stack trace and how the stack is handled.
+     */
+    val SC_CALL_STACK_INDEX = 8
 
     // ---- Taken directly from Timber ----
     // DO NOT switch this to Thread.getCurrentThread().getStackTrace(). The test will pass
@@ -292,6 +299,12 @@ private fun createCustomStackElementTag(): String {
 
     // Since unit testing is hard to do currently, add one more test on Debug builds that
     // attempts to determine if the stack index is pointing to the correct location.
+    //
+    // NOTE: If these checks are failing then it's possible a library has been updated which may
+    // have affected the depth of the call stack at this point, and as such the SC_CALL_STACK_INDEX
+    // may need to be updated. Place a debug break here, check the stackTrace array and find which
+    // index the actual logging call was made. This will most likely be the new
+    // SC_CALL_STACK_INDEX value.
     if (SteamcLog.config.isDebug && !internalLog) {
         check(beforeCutoff.fileName == steamclogFileName)
             { "createCustomStackElementTag failed: Element before cutoff no longer correct" }
