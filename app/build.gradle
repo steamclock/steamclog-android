@@ -16,13 +16,6 @@ android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
 
-    // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
-    // Added for Sentry support
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
     kotlinOptions {
         jvmTarget = "1.8"
     }
@@ -33,7 +26,6 @@ android {
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -48,26 +40,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-}
-
-// Defaults taken directly from https://docs.sentry.io/platforms/android/
-sentry {
-    // Enables or disables the automatic upload of mapping files
-    // during a build.  If you disable this, you'll need to manually
-    // upload the mapping files with sentry-cli when you do a release.
-    autoUpload = true
-
-    // Disables or enables the automatic configuration of Native Symbols
-    // for Sentry. This executes sentry-cli automatically so
-    // you don't need to do it manually.
-    // Default is disabled.
-    uploadNativeSymbols = false
-
-    // Does or doesn't include the source code of native code for Sentry.
-    // This executes sentry-cli with the --include-sources param. automatically so
-    // you don't need to do it manually.
-    // Default is disabled.
-    includeNativeSources = false
 }
 
 dependencies {
