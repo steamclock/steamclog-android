@@ -11,6 +11,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Updated to Gradle 7.0; updated 3rd party libraries (#86)
 - InitWith method takes Config parameter (#91)
 - Renamed ThrowableBlocker to FilterOut (#95)
+- Simplify Sentry setup (#84)
 
 ---
 
