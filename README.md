@@ -1,6 +1,6 @@
 # SteamcLog Android
 
-[Technical Documentation](https://coda.io/d/SteamcLog-Public-Documentation_dYDBWMQYscM)
+[Technical Documentation](https://coda.io/d/SteamcLog_dmRQYLbOZrl)
 
 [iOS Repo](https://github.com/steamclock/steamclog)
 
@@ -141,24 +141,24 @@ See the `FilterOut` interface and `filtering` config property.
 
 See https://coda.io/d/SteamcLog_dmRQYLbOZrl/API-Docs_sufrm#_luAYL for full details
 
-`clog.verbose` - Log all of the things! Probably only output to the console by developers, never to devices.
-`clog.debug` - Info that is interesting to developers, any information that may be helpful when debugging. Should be stored to system logs for debug builds but never stored in production.
-`clog.info` - Routine app operations, used to document changes in state within the application. Minimum level of log stored in device logs in production.
-`clog.warn` - Developer concerns or incorrect state etc. Something’s definitely gone wrong, but there’s a path to recover
-`clog.error` - Something has gone wrong, report to a remote service (like Sentry)
-`clog.fatal` - Something has gone wrong and we cannot recover, so force the app to close.
+* `clog.verbose` - Log all of the things! Probably only output to the console by developers, never to devices.
+* `clog.debug` - Info that is interesting to developers, any information that may be helpful when debugging. Should be stored to system logs for debug builds but never stored in production.
+* `clog.info` - Routine app operations, used to document changes in state within the application. Minimum level of log stored in device logs in production.
+* `clog.warn` - Developer concerns or incorrect state etc. Something’s definitely gone wrong, but there’s a path to recover
+* `clog.error` - Something has gone wrong, report to a remote service (like Sentry)
+* `clog.fatal` - Something has gone wrong and we cannot recover, so force the app to close.
 
 #### Basic Signatures
 
 Each of these functions has the following 2 available signatures:
-`clog.<level>(_ message: String)`
-`clog.<level>(_ message: String, object: Any)`
+* `clog.<level>(_ message: String)`
+* `clog.<level>(_ message: String, object: Any)`
 
 If `requireRedacted` is set to `true`, then the Any object *must* implement the Redactable interface, else all properties will be shown as `<REDACTED>`.
 
 #### Error and Fatal Specific Signatures
 Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log.
-`clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
+* `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
 If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
 Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `ThrowableBlocker` interface implementation.
