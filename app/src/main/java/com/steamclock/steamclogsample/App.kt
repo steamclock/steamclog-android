@@ -2,18 +2,25 @@ package com.steamclock.steamclogsample
 
 import android.app.Application
 import com.steamclock.steamclog.Config
-import com.steamclock.steamclog.ThrowableBlocker
+import com.steamclock.steamclog.FilterOut
 import com.steamclock.steamclog.clog
 
 /**
  * steamclog
  * Created by jake on 2020-03-27, 2:40 PM
  */
-class App: Application() {
+class App : Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initWith(Config(BuildConfig.DEBUG, externalCacheDir))
-        clog.throwableBlocker = ThrowableBlocker { throwable ->
+        clog.initWith(Config(
+            isDebug = BuildConfig.DEBUG,
+            fileWritePath = externalCacheDir,
+            filtering = appFiltering
+        ))
+    }
+
+    companion object {
+        val appFiltering = FilterOut { throwable ->
             when (throwable) {
                 is BlockedException1 -> {
                     true
@@ -29,6 +36,6 @@ class App: Application() {
     }
 }
 
-class BlockedException1(message: String): Exception(message)
-class BlockedException2(message: String): Exception(message)
-class AllowedException(message: String): Exception(message)
+class BlockedException1(message: String) : Exception(message)
+class BlockedException2(message: String) : Exception(message)
+class AllowedException(message: String) : Exception(message)

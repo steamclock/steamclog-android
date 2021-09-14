@@ -37,6 +37,13 @@ data class Config(
     var requireRedacted: Boolean = false,
 
     /**
+     * Optional; If set the FilterOut interface will be called to determine if the Throwable
+     * being logged should be sent to the remote destination, or be filtered out.
+     * By default no Throwables will be filtered.
+     */
+    var filtering: FilterOut = FilterOut { false },
+
+    /**
      * Optional; Destination logging levels. In most cases we should use the default values, but
      * could be changed at runtime to allow for more detailed reporting.
      */
