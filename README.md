@@ -160,8 +160,7 @@ If `requireRedacted` is set to `true`, then the Any object *must* implement the 
 Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log.
 * `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
-If no `Throwable` object is given for an error or fatal log, Steamclog will create a generic `NonFatalException` instance that will be used to generate crash reports on Sentry.
-Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `ThrowableBlocker` interface implementation.
+Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `FilterOut` interface implementation.
 
 ### Interfaces
 
