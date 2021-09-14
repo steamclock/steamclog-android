@@ -6,6 +6,6 @@ package com.steamclock.steamclog
  * Throwable should be blocked from being logged as an error by the crash reporting
  * destination.
  */
-fun interface ThrowableBlocker {
+fun interface FilterOut {
     fun shouldBlock(throwable: Throwable): Boolean
 }

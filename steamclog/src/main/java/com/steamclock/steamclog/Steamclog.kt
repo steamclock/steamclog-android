@@ -33,12 +33,6 @@ object SteamcLog {
     lateinit var config: Config
         private set
 
-    /**
-     * Can be overridden by the application to allow Throwables to be filtered out before
-     * being sent as errors to the crash reporting destination.
-     */
-    var throwableBlocker: ThrowableBlocker = ThrowableBlocker { false } // By default filter nothing
-
     init {
         // By default plant all trees; setting their level to LogLevel.None will effectively
         // disable that tree, but we do not uproot it.
