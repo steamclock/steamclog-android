@@ -1,6 +1,6 @@
 # SteamcLog Android
 
-[Technical Documentation](https://coda.io/d/SteamcLog_dmRQYLbOZrl)
+[Technical Documentation](https://coda.io/d/SteamcLog-Public-Documentation_dYDBWMQYscM/SteamcLog-Technical-Documentation_suPjU)
 
 [iOS Repo](https://github.com/steamclock/steamclog)
 
@@ -139,7 +139,7 @@ See the `FilterOut` interface and `filtering` config property.
 
 ### Common logging methods
 
-See https://coda.io/d/SteamcLog_dmRQYLbOZrl/API-Docs_sufrm#_luAYL for full details
+See the [API Docs](https://coda.io/d/SteamcLog-Public-Documentation_dYDBWMQYscM/API-Docs_suZP0#_lu7W8) for full details
 
 * `clog.verbose` - Log all of the things! Probably only output to the console by developers, never to devices.
 * `clog.debug` - Info that is interesting to developers, any information that may be helpful when debugging. Should be stored to system logs for debug builds but never stored in production.
