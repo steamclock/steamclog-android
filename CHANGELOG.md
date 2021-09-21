@@ -10,6 +10,9 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Update Log Level Presets to match specs from TechWG discussion (#83)
 - Updated to Gradle 7.0; updated 3rd party libraries (#86)
 - Updated readme (#88)
+- InitWith method takes Config parameter (#91)
+- Renamed ThrowableBlocker to FilterOut (#95)
+- Simplify Sentry setup (#84)
 
 ---
 

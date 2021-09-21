@@ -53,7 +53,7 @@ internal class SentryDestination : Timber.Tree() {
             priority == Log.ERROR && originalThrowable != null -> {
                 // Check to see if we want to allow or block the Throwable from being reported
                 // as an error.
-                if (SteamcLog.throwableBlocker.shouldBlock(originalThrowable)) {
+                if (SteamcLog.config.filtering.shouldBlock(originalThrowable)) {
                     Sentry.addBreadcrumb("${originalThrowable::class.simpleName} on blocked list, and has " +
                             "been blocked from being captured as an exception: " +
                             "${originalThrowable.message}", breadcrumbCategory)

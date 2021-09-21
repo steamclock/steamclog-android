@@ -6,7 +6,6 @@ import io.sentry.Sentry
 import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
-import java.io.File
 
 /**
  * Steamclog
@@ -31,14 +30,8 @@ object SteamcLog {
     //---------------------------------------------
     // Public properties
     //---------------------------------------------
-    var config: Config = Config()
+    lateinit var config: Config
         private set
-
-    /**
-     * Can be overridden by the application to allow Throwables to be filtered out before
-     * being sent as errors to the crash reporting destination.
-     */
-    var throwableBlocker: ThrowableBlocker = ThrowableBlocker { false } // By default filter nothing
 
     init {
         // By default plant all trees; setting their level to LogLevel.None will effectively
@@ -54,14 +47,13 @@ object SteamcLog {
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
     }
 
-    fun initWith(isDebug: Boolean,
-                 fileWritePath: File? = null,
-                 fileRotationSeconds: Long = AutoRotateConfig.defaultFileRotationSeconds) {
-        fileWritePath?.let {
-            this.config = Config(isDebug, fileWritePath, autoRotateConfig = AutoRotateConfig(fileRotationSeconds))
+    fun initWith(config: Config) {
+        this.config = config
+        this.config.fileWritePath?.let {
             updateTree(externalLogFileTree, true)
+        } ?: run {
+            logInternal(LogLevel.Warn, "fileWritePath given was null; cannot log to external file")
         }
-
         logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
     }
 
