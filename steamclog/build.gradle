@@ -18,15 +18,15 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.steamclock.steamclog'
                 artifactId = 'release'
-                version = 'v2.0'
+                version = 'v2.1'
             }
         }
     }
 }
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    compileSdkVersion 31    // Android 12 (2021)
+    buildToolsVersion "31.0.0"
 
     // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
     // Added for Sentry support
@@ -37,7 +37,7 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 31 // Android 12 (2021)
         versionCode 2
         versionName "1.1"
         consumerProguardFiles "consumer-rules.pro"
