@@ -9,7 +9,7 @@ import android.widget.AdapterView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.steamclock.steamclog.*
-import kotlinx.android.synthetic.main.activity_main.*
+import com.steamclock.steamclogsample.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -17,30 +17,35 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        val toolbar = binding.toolbar
         setSupportActionBar(toolbar)
         title = "SteamClog Test"
+        setContentView(view)
 
         // UI init
-        demo_text.text = clog.toString()
-        log_things.setOnClickListener { testLogging() }
-        dump_file_button.setOnClickListener { testLogDump() }
-        non_fatal.setOnClickListener { testNonFatal() }
-        log_blocked_exception.setOnClickListener { testBlockedException() }
-        track_analytic.setOnClickListener {
+        binding.demoText.text = clog.toString()
+        binding.logThings.setOnClickListener { testLogging() }
+        binding.dumpFileButton.setOnClickListener { testLogDump() }
+        binding.nonFatal.setOnClickListener { testNonFatal() }
+        binding.logBlockedException.setOnClickListener { testBlockedException() }
+        binding.trackAnalytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
         }
 
-        add_user_id.setOnClickListener { clog.setUserId("1234") }
+        binding.addUserId.setOnClickListener { clog.setUserId("1234") }
 
-        demo_text.setOnLongClickListener {
+        binding.demoText.setOnLongClickListener {
             copyFileToClipboard()
             true
         }
 
-        level_selector.setSelection(when (clog.config.logLevel) {
+        binding.levelSelector.setSelection(when (clog.config.logLevel) {
             LogLevelPreset.DebugVerbose -> 0
             LogLevelPreset.Debug -> 1
             LogLevelPreset.Release -> 2
@@ -48,12 +53,12 @@ class MainActivity : AppCompatActivity() {
             else -> 0
         })
 
-        level_selector.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
+        binding.levelSelector.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
 
             override fun onItemSelected(
                 parent: AdapterView<*>?,
-                view: View?,
+                view: View,
                 position: Int,
                 id: Long
             ) {
@@ -74,7 +79,7 @@ class MainActivity : AppCompatActivity() {
                         LogLevelPreset.DebugVerbose
                     }
                 }
-                demo_text.text = clog.toString()
+                binding.demoText.text = clog.toString()
                 clog.warn("LogLevel changed to ${clog.config.logLevel.title}")
             }
         }
@@ -181,7 +186,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testLogDump() = GlobalScope.launch(Dispatchers.Main) {
-        demo_text?.text = SteamcLog.getLogFileContents()
+        binding.demoText.text = SteamcLog.getLogFileContents()
     }
 
     private fun simulateCrash() {
@@ -191,7 +196,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun copyFileToClipboard() {
         val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clipData = ClipData.newPlainText("File Dump", demo_text?.text)
+        val clipData = ClipData.newPlainText("File Dump", binding.demoText.text)
         clipboardManager.setPrimaryClip(clipData)
         Toast.makeText(applicationContext, "Copied to clipboard", Toast.LENGTH_LONG).show()
     }
