@@ -57,7 +57,8 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
+    // No longer need to include kotlin stdlib dependency
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     implementation "com.jakewharton.timber:timber:$timber"
