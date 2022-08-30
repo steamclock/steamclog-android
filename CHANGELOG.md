@@ -7,6 +7,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 
 - Updated libraries including Sentry (#101)
 - Replaced kotlin synthetics with ViewBinding in sample app (#47) 
+- Update kotlin version, and dependencies again (part of #106)
 
 ---
 
