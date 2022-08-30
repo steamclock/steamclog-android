@@ -2,7 +2,9 @@ package com.steamclock.steamclog
 
 import android.annotation.SuppressLint
 import android.util.Log
+import io.sentry.Breadcrumb
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
@@ -41,35 +43,48 @@ internal class SentryDestination : Timber.Tree() {
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
 
-        // Always add breadcrumb that indicates the log message.
-        Sentry.addBreadcrumb(generateSimpleLogMessage(
-            priority,
-            includeEmoji = false,
-            wrapper,
-            message
-        ), breadcrumbCategory)
+        // Create a full log message and include as a breadcrumb to Sentry.
+        val verboseLogMessage = generateSimpleLogMessage(priority, includeEmoji = false, wrapper, originalMessage)
+        Sentry.addBreadcrumb(createSentryBreadcrumbFor(priority, verboseLogMessage))
 
-        when {
-            priority == Log.ERROR && originalThrowable != null -> {
-                // Check to see if we want to allow or block the Throwable from being reported
-                // as an error.
+        // Log error report if desired.
+        if (priority == Log.ERROR) {
+            if (originalThrowable != null) {
+                // Check to see if we want to block this Throwable from being logged as an Error.
                 if (SteamcLog.config.filtering.shouldBlock(originalThrowable)) {
-                    Sentry.addBreadcrumb("${originalThrowable::class.simpleName} on blocked list, and has " +
-                            "been blocked from being captured as an exception: " +
-                            "${originalThrowable.message}", breadcrumbCategory)
-                } else {
-                    Sentry.captureException(originalThrowable)
+                    Sentry.addBreadcrumb(
+                        "${originalThrowable::class.simpleName} on blocked list, and has " +
+                                "been blocked from being captured as an exception: " +
+                                "${originalThrowable.message}", breadcrumbCategory
+                    )
+                    return
                 }
+                // Log stack trace as a breadcrumb (this logged as an INFO breadcrumb by default)
+                Sentry.addBreadcrumb(originalThrowable.stackTraceToString(), breadcrumbCategory)
             }
-            priority == Log.ERROR -> {
-                // If no throwable given, capture message as the error
-                Sentry.captureMessage(originalMessage)
-            }
-            else -> {
-                // Not an error; breadcrumb should already be added, so we do not
-                // need to do anything more.
-            }
+
+            // Always use the message as our error report, as this gives us way more contextual
+            // info about the problem than the name of the Exception.
+            Sentry.captureMessage(originalMessage, SentryLevel.ERROR)
         }
+    }
+
+    /**
+     * Takes the given priority level and creates a breadcrumb at a similar level. Mappings
+     * aren't 1 to 1, but this should still give us better detail in our breadcrumb log.
+     */
+    private fun createSentryBreadcrumbFor(priority: Int, message: String): Breadcrumb {
+       val breadcrumb =  when (priority) {
+            Log.ASSERT -> Breadcrumb.error(message)
+            Log.ERROR -> Breadcrumb.error(message)
+            Log.WARN -> Breadcrumb.info(message)
+            // Log.INFO is the default
+            Log.DEBUG -> Breadcrumb.debug(message)
+            Log.VERBOSE -> Breadcrumb.debug(message)
+            else -> Breadcrumb.info(message)
+        }
+        breadcrumb.category = breadcrumbCategory
+        return breadcrumb
     }
 }
 
