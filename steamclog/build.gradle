@@ -18,7 +18,7 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.steamclock.steamclog'
                 artifactId = 'release'
-                version = 'v2.1'
+                version = 'v2.2'
             }
         }
     }
@@ -58,9 +58,9 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
     // No longer need to include kotlin stdlib dependency
-    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
 
-    implementation "com.jakewharton.timber:timber:$timber"
+    implementation "com.jakewharton.timber:timber:${versions.timber}"
     // https://github.com/getsentry/sentry-java/releases
-    implementation "io.sentry:sentry-android:$sentry"
+    implementation "io.sentry:sentry-android:${versions.sentry}"
 }
