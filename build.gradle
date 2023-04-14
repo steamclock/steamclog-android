@@ -2,7 +2,6 @@
 buildscript {
 
     ext.versions = [
-        "minSdk": 24,
         "compileSdk": 33,
         "kotlin": "1.8.10",
         "timber": "5.0.1",
