@@ -25,7 +25,7 @@ afterEvaluate {
 }
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion versions.compileSdk
 
     // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
     // Added for Sentry support
@@ -36,7 +36,7 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 33
+        targetSdkVersion versions.compileSdk
         versionCode 3
         versionName "2.2"
         consumerProguardFiles "consumer-rules.pro"

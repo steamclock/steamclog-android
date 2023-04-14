@@ -12,8 +12,7 @@ plugins {
 }
 
 android {
-    compileSdkVersion 31    // Android 12 (2021)
-    buildToolsVersion "31.0.0"
+    compileSdkVersion versions.compileSdk
 
     kotlinOptions {
         jvmTarget = "1.8"
@@ -26,7 +25,7 @@ android {
     defaultConfig {
         applicationId "com.steamclock.steamclogsample"
         minSdkVersion 21
-        targetSdkVersion 31 // Android 12 (2021)
+        targetSdkVersion versions.compileSdk
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -48,7 +47,6 @@ android {
 dependencies {
     implementation project(':steamclog')
     // Since Sentry is a dependency of steamclog, we do not have to import it again
-
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.2'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
