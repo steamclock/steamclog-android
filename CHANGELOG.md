@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## v2.2 Unreleased
+## Jitpack v2.2 : Apr 17, 2023
 - Updated to SDK 33, kotlin and Sentry dependencies (#108)
 
 ---
