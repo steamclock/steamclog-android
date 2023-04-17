@@ -3,7 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## Unreleased 
+## v2.2 Unreleased
+- Updated to SDK 33, kotlin and Sentry dependencies (#108)
+
+---
+
+## Jitpack v2.1 : Aug 30, 2022
 
 - Updated libraries including Sentry (#101)
 - Replaced kotlin synthetics with ViewBinding in sample app (#47) 
