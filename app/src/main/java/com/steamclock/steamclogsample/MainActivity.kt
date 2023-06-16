@@ -28,6 +28,8 @@ class MainActivity : AppCompatActivity() {
         title = "SteamClog Test"
         setContentView(view)
 
+        binding.enableUserReportLogs.isChecked = clog.config.detailedLogsOnUserReports
+
         // UI init
         binding.demoText.text = clog.toString()
         binding.logThings.setOnClickListener { testLogging() }
@@ -38,6 +40,9 @@ class MainActivity : AppCompatActivity() {
         binding.logBlockedException.setOnClickListener { testBlockedException() }
         binding.trackAnalytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
+        }
+        binding.enableUserReportLogs.setOnCheckedChangeListener { _, checked ->
+            clog.config.detailedLogsOnUserReports = checked
         }
 
         binding.addUserId.setOnClickListener { clog.setUserId("1234") }
