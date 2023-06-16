@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
         binding.dumpFileButton.setOnClickListener { testLogDump() }
         binding.allNonFatals.setOnClickListener { testAllNonFatals() }
         binding.singleNonFatal.setOnClickListener{ testSingleNonFatal() }
+        binding.userReport.setOnClickListener { testUserReport() }
         binding.logBlockedException.setOnClickListener { testBlockedException() }
         binding.trackAnalytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
@@ -142,6 +143,12 @@ class MainActivity : AppCompatActivity() {
             Toast.LENGTH_LONG).show()
     }
 
+    private fun testUserReport() {
+        showMessageIfCrashReportingNotEnabled()
+        clog.info("Running testUserReport")
+        clog.userReport("This is my user report")
+    }
+
     private fun testSingleNonFatal() {
         showMessageIfCrashReportingNotEnabled()
         clog.info("Running testSingleNonFatal")
@@ -193,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testLogDump() = GlobalScope.launch(Dispatchers.Main) {
-        binding.demoText.text = SteamcLog.getLogFileContents()
+        binding.demoText.text = SteamcLog.getFullLogContents()
     }
 
     private fun simulateCrash() {

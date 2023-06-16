@@ -6,6 +6,7 @@ import io.sentry.Sentry
 import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
+import java.io.File
 
 /**
  * Steamclog
@@ -68,31 +69,46 @@ object SteamcLog {
     // To get around this for now we explicit versions of each <level> method below without optional
     // parameters.
     //---------------------------------------------
-    fun verbose(@NonNls message: String)                = logTimber(LogLevel.Verbose, message, null, null)
-    fun verbose(@NonNls message: String, obj: Any)      = logTimber(LogLevel.Verbose, message, null, obj)
+    fun verbose(@NonNls message: String)                = logTimber(LogLevel.Verbose, message, null, null, null)
+    fun verbose(@NonNls message: String, obj: Any)      = logTimber(LogLevel.Verbose, message, null, obj, null)
 
-    fun debug(@NonNls message: String)                  = logTimber(LogLevel.Debug, message, null, null)
-    fun debug(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Debug, message, null, obj)
+    fun debug(@NonNls message: String)                  = logTimber(LogLevel.Debug, message, null, null, null)
+    fun debug(@NonNls message: String, obj: Any)        = logTimber(LogLevel.Debug, message, null, obj, null )
 
-    fun info(@NonNls message: String)                   = logTimber(LogLevel.Info, message, null, null)
-    fun info(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Info, message, null, obj)
+    fun info(@NonNls message: String)                   = logTimber(LogLevel.Info, message, null, null, null)
+    fun info(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Info, message, null, obj, null)
 
-    fun warn(@NonNls message: String)                   = logTimber(LogLevel.Warn, message, null, null)
-    fun warn(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Warn, message, null, obj)
+    fun warn(@NonNls message: String)                   = logTimber(LogLevel.Warn, message, null, null, null)
+    fun warn(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Warn, message, null, obj, null)
 
-    fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message, null, null)
-    fun error(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj)
+    fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.Error)
+    fun error(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj, ExtraInfoPurpose.Error)
 
-    fun fatal(@NonNls message: String)                  = logTimber(LogLevel.Fatal, message, null, null)
-    fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Fatal, message, throwable, obj)
+    fun fatal(@NonNls message: String)                  = logTimber(LogLevel.Fatal, message, null, null, ExtraInfoPurpose.Fatal)
+    fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Fatal, message, throwable, obj, ExtraInfoPurpose.Fatal)
+
+    fun userReport(@NonNls message: String)             = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.UserReport)
+    fun userReport(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj, ExtraInfoPurpose.UserReport)
 
     /**
      *  Since Timber logging allows a Thowable to be passed to its trees, we wrap all data in
      *  a SteamclogThrowableWrapper, and let the Destinations handle the data components accordingly.
      */
-    private fun logTimber(logLevel: LogLevel, @NonNls message: String, throwable: Throwable?, obj: Any?) {
-        val extraData =  obj?.getRedactedDescription()
-        val wrapper = SteamclogThrowableWrapper(message, throwable, extraData)
+    private fun logTimber(
+        logLevel: LogLevel,
+        @NonNls message: String,
+        throwable: Throwable?,
+        obj: Any?,
+        purpose: ExtraInfoPurpose?
+    ) {
+        val extraInfo = purpose?.let { config.extraInfo(purpose) }
+        val redactableObjectData =  obj?.getRedactedDescription()
+        val logUrl = when (purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports) {
+            true -> externalLogFileTree.getExternalFile()
+            else -> null
+        }
+
+        val wrapper = SteamclogThrowableWrapper(message, throwable, logUrl, redactableObjectData, extraInfo)
         Timber.log(logLevel.javaLevel, wrapper)
     }
 
@@ -160,8 +176,19 @@ object SteamcLog {
 //        // todo #63: Set custom keys on Sentry reports?
 //    }
 
-    suspend fun getLogFileContents(): String? {
+    /**
+     * Log files may be spread out across multiple files; this method will join
+     * all log files into a single String.
+     */
+    suspend fun getFullLogContents(): String? {
         return externalLogFileTree.getLogFileContents()
+    }
+
+    /**
+     * Returns the latest log file, based on the autoRotateConfig setting.
+     */
+    fun getLastLogFile(): File? {
+        return externalLogFileTree.getExternalFile()
     }
 
     fun deleteLogFile() {
@@ -189,7 +216,7 @@ object SteamcLog {
      * the info/debug/verbose calls directly.
      */
     private fun logInternal(priority: LogLevel, message: String) {
-        logTimber(priority, message, null, null)
+        logTimber(priority, message, null, null, null)
     }
 
     /**

@@ -2,6 +2,7 @@ package com.steamclock.steamclogsample
 
 import android.app.Application
 import com.steamclock.steamclog.Config
+import com.steamclock.steamclog.ExtraInfoPurpose
 import com.steamclock.steamclog.FilterOut
 import com.steamclock.steamclog.clog
 
@@ -15,7 +16,21 @@ class App : Application() {
         clog.initWith(Config(
             isDebug = BuildConfig.DEBUG,
             fileWritePath = externalCacheDir,
-            filtering = appFiltering
+            filtering = appFiltering,
+            detailedLogsOnUserReports = true,
+            extraInfo = { purpose ->
+                when (purpose) {
+                    ExtraInfoPurpose.Error -> {
+                        mapOf("ExtraInfoPurpose" to "Error")
+                    }
+                    ExtraInfoPurpose.Fatal -> {
+                        mapOf("ExtraInfoPurpose" to "Fatal")
+                    }
+                    ExtraInfoPurpose.UserReport -> {
+                        mapOf("ExtraInfoPurpose" to "UserReport")
+                    }
+                }
+            }
         ))
     }
 
