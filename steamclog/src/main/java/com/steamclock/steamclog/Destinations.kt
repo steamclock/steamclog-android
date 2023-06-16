@@ -67,8 +67,8 @@ internal class SentryDestination : Timber.Tree() {
             val sentryEvent = SentryEvent(originalThrowable).apply {
                 level = SentryLevel.ERROR
                 setMessage(Message().apply {
-                    setMessage("EVENT5: $originalMessage")
-                    formatted = "EVENT5: $originalMessage"
+                    setMessage(originalMessage)
+                    formatted = originalMessage
                 })
                 wrapper?.extraInfo?.let { extras = it }
             }
