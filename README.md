@@ -132,6 +132,14 @@ If the application is **not** setup to report to Sentry yet, do the following:
     ```
     'io.sentry.android.gradle' 
     ```
+   And to avoid Sentry from using the default Timber intergration, add the following also in the app's `build.gradle` file:
+    ```
+    configurations.configureEach {
+      exclude group: "io.sentry", module: "sentry-android-timber"
+    }
+    ```
+   (See https://docs.sentry.io/platforms/android/configuration/integrations/timber/ for full details)
+   
 
 #### Filtering out some Throwables from being logged to Sentry
 See the `FilterOut` interface and `filtering` config property.

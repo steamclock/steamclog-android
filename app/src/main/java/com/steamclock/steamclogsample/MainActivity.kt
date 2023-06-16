@@ -32,7 +32,8 @@ class MainActivity : AppCompatActivity() {
         binding.demoText.text = clog.toString()
         binding.logThings.setOnClickListener { testLogging() }
         binding.dumpFileButton.setOnClickListener { testLogDump() }
-        binding.nonFatal.setOnClickListener { testNonFatal() }
+        binding.allNonFatals.setOnClickListener { testAllNonFatals() }
+        binding.singleNonFatal.setOnClickListener{ testSingleNonFatal() }
         binding.logBlockedException.setOnClickListener { testBlockedException() }
         binding.trackAnalytic.setOnClickListener {
             Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
@@ -141,9 +142,15 @@ class MainActivity : AppCompatActivity() {
             Toast.LENGTH_LONG).show()
     }
 
-    private fun testNonFatal() {
+    private fun testSingleNonFatal() {
         showMessageIfCrashReportingNotEnabled()
-        clog.info("Running testNonFatal")
+        clog.info("Running testSingleNonFatal")
+        testNonFatalMessageOnly()
+    }
+
+    private fun testAllNonFatals() {
+        showMessageIfCrashReportingNotEnabled()
+        clog.info("Running testAllNonFatals")
 
         // NOTE, Sentry seems to apply some grouping logic such that the *same* Throwable thrown
         // in the *same* function will be grouped no matter what messages they are given, such
