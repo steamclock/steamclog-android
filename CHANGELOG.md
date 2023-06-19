@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
+## Jitpack v2.3 : Jun 19, 2023
+- Added UserReports (#110)
+- Updated Sentry plugin version; added exclusion for "default" Timber/Sentry integration (#111)
+
+---
+
 ## Jitpack v2.2 : Apr 17, 2023
 - Updated to SDK 33, kotlin and Sentry dependencies (#108)
 

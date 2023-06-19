@@ -18,7 +18,7 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.steamclock.steamclog'
                 artifactId = 'release'
-                version = 'v2.2'
+                version = 'v2.3'
             }
         }
     }
