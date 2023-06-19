@@ -1,5 +1,7 @@
 package com.steamclock.steamclog
 
+import java.io.File
+
 /**
  * SteamclogThrowableWrapper
  * Enables multiple types of data to be passed to our Destinations.
@@ -9,16 +11,21 @@ package com.steamclock.steamclog
 data class SteamclogThrowableWrapper(
     val originalMessage: String,
     val originalThrowable: Throwable?,
-    val extraData: String?): Throwable(originalMessage)  {
-        companion object {
-            fun from(throwable: Throwable?): SteamclogThrowableWrapper? {
-                if (throwable == null) return null
-                return throwable as? SteamclogThrowableWrapper
-                    ?: SteamclogThrowableWrapper(
-                        throwable.message ?: throwable.toString(),
-                        originalThrowable = throwable,
-                        extraData = null
-                    )
-            }
+    val logAttachmentUrl: File?,
+    val redactedObjectData: String?,
+    val extraInfo: Map<String, Any>?): Throwable(originalMessage)
+{
+    companion object {
+        fun from(throwable: Throwable?): SteamclogThrowableWrapper? {
+            if (throwable == null) return null
+            return throwable as? SteamclogThrowableWrapper
+                ?: SteamclogThrowableWrapper(
+                    throwable.message ?: throwable.toString(),
+                    originalThrowable = throwable,
+                    logAttachmentUrl = null,
+                    redactedObjectData = null,
+                    extraInfo = null
+                )
         }
+    }
 }

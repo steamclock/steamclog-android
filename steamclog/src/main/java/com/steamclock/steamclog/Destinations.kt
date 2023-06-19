@@ -2,9 +2,8 @@ package com.steamclock.steamclog
 
 import android.annotation.SuppressLint
 import android.util.Log
-import io.sentry.Breadcrumb
-import io.sentry.Sentry
-import io.sentry.SentryLevel
+import io.sentry.*
+import io.sentry.protocol.Message
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
@@ -65,7 +64,20 @@ internal class SentryDestination : Timber.Tree() {
 
             // Always use the message as our error report, as this gives us way more contextual
             // info about the problem than the name of the Exception.
-            Sentry.captureMessage(originalMessage, SentryLevel.ERROR)
+            val sentryEvent = SentryEvent(originalThrowable).apply {
+                level = SentryLevel.ERROR
+                setMessage(Message().apply {
+                    setMessage(originalMessage)
+                    formatted = originalMessage
+                })
+                wrapper?.extraInfo?.let { extras = it }
+            }
+
+            val hintWithAttachment = wrapper?.logAttachmentUrl?.let {logFile ->
+                Hint.withAttachment(Attachment(logFile.absolutePath))
+            }
+
+            Sentry.captureEvent(sentryEvent, hintWithAttachment)
         }
     }
 
@@ -174,7 +186,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         return logDirectory
     }
 
-    private fun getExternalFile(): File? {
+    fun getExternalFile(): File? {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
@@ -344,7 +356,7 @@ private fun generateSimpleLogMessage(priority: Int,
     val emojiStr = if (includeEmoji && emoji != null) { "$emoji " } else { "" }
 
     val wrapper = SteamclogThrowableWrapper.from(throwable)
-    val extraData = wrapper?.extraData?.let { ": $it" } ?: run { "" }
+    val extraData = wrapper?.redactedObjectData?.let { ": $it" } ?: run { "" }
     val originalMessage = wrapper?.originalMessage ?: defaultMessage
     return "$emojiStr$originalMessage$extraData"
 }
