@@ -8,7 +8,17 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     // Provides auto-uploading of proguard mappings to Sentry
-    id 'io.sentry.android.gradle' version '2.1.4'
+    id 'io.sentry.android.gradle' version '3.5.0'
+}
+
+/**
+ * Sentry has it's own Timber integration, which is automatically added with the
+ * "io.sentry.android.gradle" plugin; we do NOT want to enable this as it will result in
+ * errors being reported twice (with different messages)
+ * https://docs.sentry.io/platforms/android/configuration/integrations/timber/
+ */
+configurations.configureEach {
+    exclude group: "io.sentry", module: "sentry-android-timber"
 }
 
 android {
