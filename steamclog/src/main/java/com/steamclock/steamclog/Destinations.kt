@@ -77,22 +77,17 @@ internal class SentryDestination : Timber.Tree() {
             val attachments = when (val numFiles = wrapper?.attachLogFiles ?: 0) {
                 0 -> null
                 else -> {
-                    // Sort by descending modified time so that we get the latest log files
-                    val allLogFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
                     val attachments = mutableListOf<Attachment>()
-
-                    for (n in 0 until numFiles) {
-                        allLogFiles?.getOrNull(n)?.let { logFile ->
-                            attachments += Attachment(logFile.absolutePath)
-                        }
-                    }
+                    // Sort by descending modified time so that we get the "latest" log files
+                    SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                        ?.take(numFiles)
+                        ?.forEach { file -> attachments += Attachment(file.absolutePath) }
 
                     // If we have successfully generated some Attachments, return them as an
                     // immutable list.
-                    if (attachments.size == 0) {
-                        null
-                    } else {
-                        attachments.toList()
+                    when (attachments.size) {
+                        0 -> null
+                        else -> attachments.toList()
                     }
                 }
             }
@@ -289,8 +284,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     /**
-     * Files are sorted by lastModified, meaning index 0 will contain the "oldest" log file. The last file
-     * in the list will contain the most current/new log file.
+     * Returns the list of log files written to the log directory, sorted by the desired method.
      */
     fun getLogFiles(sort: LogSort): List<File>? {
         return when (sort) {
