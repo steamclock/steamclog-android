@@ -28,6 +28,7 @@ internal class SentryDestination : Timber.Tree() {
 
     companion object {
         const val breadcrumbCategory = "steamclog"
+        const val attachNumLogFiles = 2
     }
 
     override fun isLoggable(priority: Int): Boolean {
@@ -73,30 +74,24 @@ internal class SentryDestination : Timber.Tree() {
                 wrapper?.extraInfo?.let { extras = it }
             }
 
-            // Iterate over the desired number of log files and add them as attachments.
-            val attachments = when (val numFiles = wrapper?.attachLogFiles ?: 0) {
-                0 -> null
-                else -> {
+            // Attach log files if desired
+            val hintWithAttachments = when (wrapper?.attachLogFiles) {
+                true -> {
                     val attachments = mutableListOf<Attachment>()
                     // Sort by descending modified time so that we get the "latest" log files
                     SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
-                        ?.take(numFiles)
+                        ?.take(attachNumLogFiles)
                         ?.forEach { file -> attachments += Attachment(file.absolutePath) }
 
-                    // If we have successfully generated some Attachments, return them as an
-                    // immutable list.
                     when (attachments.size) {
                         0 -> null
-                        else -> attachments.toList()
+                        else -> Hint.withAttachments(attachments.toList())
                     }
                 }
+                else -> null
             }
 
-            val hintWithAttachment = attachments?.let { attachments ->
-                Hint.withAttachments(attachments)
-            }
-
-            Sentry.captureEvent(sentryEvent, hintWithAttachment)
+            Sentry.captureEvent(sentryEvent, hintWithAttachments)
         }
     }
 

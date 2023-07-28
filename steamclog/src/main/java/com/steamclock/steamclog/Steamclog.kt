@@ -103,10 +103,7 @@ object SteamcLog {
     ) {
         val extraInfo = purpose?.let { config.extraInfo(purpose) }
         val redactableObjectData =  obj?.getRedactedDescription()
-        val attachLogFiles = when (purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports) {
-            true -> 2 // Always attach 2 to cover case where we have recently cycled the log file
-            else -> 0
-        }
+        val attachLogFiles = purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports
 
         val wrapper = SteamclogThrowableWrapper(message, throwable, attachLogFiles, redactableObjectData, extraInfo)
         Timber.log(logLevel.javaLevel, wrapper)
