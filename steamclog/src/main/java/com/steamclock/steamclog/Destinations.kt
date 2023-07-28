@@ -6,6 +6,7 @@ import io.sentry.*
 import io.sentry.protocol.Message
 import timber.log.Timber
 import java.io.File
+import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -73,8 +74,32 @@ internal class SentryDestination : Timber.Tree() {
                 wrapper?.extraInfo?.let { extras = it }
             }
 
-            val hintWithAttachment = wrapper?.logAttachmentUrl?.let {logFile ->
-                Hint.withAttachment(Attachment(logFile.absolutePath))
+            // Iterate over the desired number of log files and add them as attachments.
+            val attachments = when (val numFiles = wrapper?.attachLogFiles ?: 0) {
+                0 -> null
+                else -> {
+                    // Sort by descending modified time so that we get the latest log files
+                    val allLogFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                    val attachments = mutableListOf<Attachment>()
+
+                    for (n in 0 until numFiles) {
+                        allLogFiles?.getOrNull(n)?.let { logFile ->
+                            attachments += Attachment(logFile.absolutePath)
+                        }
+                    }
+
+                    // If we have successfully generated some Attachments, return them as an
+                    // immutable list.
+                    if (attachments.size == 0) {
+                        null
+                    } else {
+                        attachments.toList()
+                    }
+                }
+            }
+
+            val hintWithAttachment = attachments?.let { attachments ->
+                Hint.withAttachments(attachments)
             }
 
             Sentry.captureEvent(sentryEvent, hintWithAttachment)
@@ -125,6 +150,67 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 }
 
+fun File.getFirstLine(): String {
+    val buffer = bufferedReader()
+    val firstLine = buffer.readLine()
+    buffer.close()
+    return firstLine
+}
+
+//data class LogFile(val file: File) {
+//    /**
+//     * Since we cannot know file creation time with accuracy, we write the creation time
+//     * on the first line of the file so we can read it back later
+//     */
+//    val creationTimeMs: Long by lazy {
+//        try {
+//            file.getFirstLine().toLong()
+//        } catch (e: Exception) {
+//            logToConsole("Failed to parse file creation: ${e.message}, using lastModified instead")
+//            file.lastModified()
+//        }
+//    }
+//
+//    companion object {
+//        fun create(newFile: File): LogFile {
+//            if (newFile.length() != 0L) {
+//                // If we already have something written in the log, do NOT add the creation time.
+//               return LogFile(newFile)
+//            }
+//
+//            // Else make first line the creation timestamp in MS.
+//            newFile.appendText(Date().time.toString())
+//
+//            file -> file.appendText("$message\r\n") }
+//        }
+//    }
+
+
+//    /**
+//     * Returns true if the file is not empty and
+//     * expiryMs: The number of ms the file is active for.
+//     */
+//    fun hasExpired(expiryMs: Long): Boolean {
+//
+//
+//        val filePath = Paths.get("path/to/file")
+//        val attributes = Files.readAttributes(filePath, BasicFileAttributes::class.java)
+//        val creationTime = attributes.creationTime()
+//
+//        return false
+////        val now = Date().time
+////
+////        val logFileEmpty = logFile != null && logFile.length() == 0L
+////
+////        val timeToExpiry = (now - logFileCreated)
+////        val logFileNotExpired = logFile != null
+////                && logFileCreated != null
+////                && now - logFileCreated < expiryMs
+////
+////        return logFileEmpty || logFileNotExpired
+//    }
+}
+
 /**
  * ExternalLogFileDestination == Disk
  * DebugTree gives us access to override createStackElementTag
@@ -135,8 +221,12 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private var rotatingIndexes = List(10) { it }
 
-    private var cachedCurrentLogFile: File? = null
-    private var currentLogFileCachedTime: Long? = null
+    private var currentLogFile: File? = null
+     private var currentLogFileEstimatedCreatedTime: Long? = null
+
+
+//    private var currentLogFile: File? = null
+//    private var currentLogFileEstimatedCreatedTime: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -174,7 +264,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      */
     private fun printLogToExternalFile(message: String) {
         try {
-            getExternalFile()?.let { file -> file.appendText("$message\r\n") }
+            getCurrentExternalFile()?.let { file -> file.appendText("$message\r\n") }
         } catch (e: Exception) {
             logToConsole("HTMLFileTree failed to write into file: $e")
         }
@@ -186,11 +276,14 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         return logDirectory
     }
 
-    fun getExternalFile(): File? {
+    /**
+     * Will get the external file we are currently writing to.
+     */
+    fun getCurrentExternalFile(): File? {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
-            return cachedCurrentLogFile
+            return currentLogFile
         }
 
         val currentFile = findAvailableLogFile(expiryMs)
@@ -201,15 +294,19 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
         // if you have a cached log file and you checked it within the expiry window
         val now = Date().time
-        val currentLogFileCachedTime = currentLogFileCachedTime
-        return cachedCurrentLogFile != null &&
+        val currentLogFileCachedTime = currentLogFileEstimatedCreatedTime
+        return currentLogFileEstimatedCreatedTime != null &&
                 currentLogFileCachedTime != null &&
                 now - currentLogFileCachedTime < expiryMs
     }
 
     private fun updateCachedLogFile(file: File?) {
-        cachedCurrentLogFile = file
-        currentLogFileCachedTime = Date().time
+        // Only update if we are changing files; this helps us simulate when a file was "created" so
+        // that we can cycle every 10 mins
+        if (currentLogFile == file) { return }
+
+        currentLogFile = file
+        currentLogFileEstimatedCreatedTime = Date().time
     }
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
@@ -253,10 +350,32 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
     }
 
-    internal suspend fun getLogFileContents(): String? {
+    /**
+     * Files are sorted by lastModified, meaning index 0 will contain the "oldest" log file. The last file
+     * in the list will contain the most current/new log file.
+     */
+    fun getLogFiles(sort: LogSort): List<File>? {
+        return when (sort) {
+            LogSort.LastModifiedAsc -> {
+                getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }
+            }
+            LogSort.LastModifiedDesc -> {
+                getExternalLogDirectory()?.listFiles()?.sortedByDescending { it.lastModified() }
+            }
+        }
+    }
+
+    /**
+     * Returns the content of ALL log files strung together to form a single String.
+     * todo Given the size of the log files it may not be feasible to output this. This meathod
+     *   was mostly used by the sample app to test out how the files are being split up.
+     */
+    internal fun getLogFileContents(): String {
         removeOldLogFiles()
         val logBuilder = StringBuilder()
-        getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }?.forEach { file ->
+        // Since log files sorted from oldest to newest, and logs contain entries from oldest to
+        // newest, we can cycle through and build up the FULL log from oldest to newest here.
+        getLogFiles(LogSort.LastModifiedAsc)?.forEach { file ->
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
@@ -272,7 +391,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     internal fun deleteLogFile() {
-        getExternalFile()?.delete()
+        getCurrentExternalFile()?.delete()
     }
 }
 

@@ -11,7 +11,7 @@ import java.io.File
 data class SteamclogThrowableWrapper(
     val originalMessage: String,
     val originalThrowable: Throwable?,
-    val logAttachmentUrl: File?,
+    val attachLogFiles: Int?,
     val redactedObjectData: String?,
     val extraInfo: Map<String, Any>?): Throwable(originalMessage)
 {
@@ -22,7 +22,7 @@ data class SteamclogThrowableWrapper(
                 ?: SteamclogThrowableWrapper(
                     throwable.message ?: throwable.toString(),
                     originalThrowable = throwable,
-                    logAttachmentUrl = null,
+                    attachLogFiles = 2,
                     redactedObjectData = null,
                     extraInfo = null
                 )

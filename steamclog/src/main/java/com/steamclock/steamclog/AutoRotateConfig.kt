@@ -12,6 +12,6 @@ data class AutoRotateConfig(
     val fileRotationSeconds: Long = defaultFileRotationSeconds // matching iOS
 ) {
     companion object {
-        const val defaultFileRotationSeconds = 600L
+        const val defaultFileRotationSeconds = 600L // 600 secs = 10 mins
     }
 }
