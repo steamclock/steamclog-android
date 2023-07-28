@@ -191,10 +191,6 @@ object SteamcLog {
         return externalLogFileTree.getLogFiles(logSort)
     }
 
-    fun deleteLogFile() {
-        return externalLogFileTree.deleteLogFile()
-    }
-
     fun addCustomTree(tree: Timber.Tree) {
         Timber.plant(tree)
     }

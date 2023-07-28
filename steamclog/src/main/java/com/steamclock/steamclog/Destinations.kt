@@ -6,7 +6,6 @@ import io.sentry.*
 import io.sentry.protocol.Message
 import timber.log.Timber
 import java.io.File
-import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -149,61 +148,6 @@ internal class ConsoleDestination: Timber.DebugTree() {
         super.log(priority, createCustomStackElementTag(), fullMessage, originalThrowable)
     }
 }
-
-//data class LogFile(val file: File) {
-//    /**
-//     * Since we cannot know file creation time with accuracy, we write the creation time
-//     * on the first line of the file so we can read it back later
-//     */
-//    val creationTimeMs: Long by lazy {
-//        try {
-//            file.getFirstLine().toLong()
-//        } catch (e: Exception) {
-//            logToConsole("Failed to parse file creation: ${e.message}, using lastModified instead")
-//            file.lastModified()
-//        }
-//    }
-//
-//    companion object {
-//        fun create(newFile: File): LogFile {
-//            if (newFile.length() != 0L) {
-//                // If we already have something written in the log, do NOT add the creation time.
-//               return LogFile(newFile)
-//            }
-//
-//            // Else make first line the creation timestamp in MS.
-//            newFile.appendText(Date().time.toString())
-//
-//            file -> file.appendText("$message\r\n") }
-//        }
-//    }
-
-
-//    /**
-//     * Returns true if the file is not empty and
-//     * expiryMs: The number of ms the file is active for.
-//     */
-//    fun hasExpired(expiryMs: Long): Boolean {
-//
-//
-//        val filePath = Paths.get("path/to/file")
-//        val attributes = Files.readAttributes(filePath, BasicFileAttributes::class.java)
-//        val creationTime = attributes.creationTime()
-//
-//        return false
-////        val now = Date().time
-////
-////        val logFileEmpty = logFile != null && logFile.length() == 0L
-////
-////        val timeToExpiry = (now - logFileCreated)
-////        val logFileNotExpired = logFile != null
-////                && logFileCreated != null
-////                && now - logFileCreated < expiryMs
-////
-////        return logFileEmpty || logFileNotExpired
-//    }
-//}
-
 /**
  * ExternalLogFileDestination == Disk
  * DebugTree gives us access to override createStackElementTag
@@ -211,11 +155,9 @@ internal class ConsoleDestination: Timber.DebugTree() {
 internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var fileNamePrefix: String = "sclog"
     private var fileExt = "txt"
-
-    private var rotatingIndexes = List(10) { it }
-
     private var currentLogFile: File? = null
     private var currentLogFileEstimatedCreatedTime: Long? = null
+    private var logFileRotations = 10
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -268,7 +210,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     /**
      * Will get the external file we are currently writing to.
      */
-    fun getCurrentExternalFile(): File? {
+    private fun getCurrentExternalFile(): File? {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
@@ -300,7 +242,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
         val now = Date().time
-        val possibleLogFiles = rotatingIndexes
+        val possibleLogFiles = List(logFileRotations) { it }
             .map { index ->
                 val filename = "${fileNamePrefix}_${index}.${fileExt}"
                 File(getExternalLogDirectory(), filename)
@@ -384,10 +326,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
 
         return logBuilder.toString()
-    }
-
-    internal fun deleteLogFile() {
-        getCurrentExternalFile()?.delete()
     }
 }
 
