@@ -150,13 +150,6 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 }
 
-fun File.getFirstLine(): String {
-    val buffer = bufferedReader()
-    val firstLine = buffer.readLine()
-    buffer.close()
-    return firstLine
-}
-
 //data class LogFile(val file: File) {
 //    /**
 //     * Since we cannot know file creation time with accuracy, we write the creation time
@@ -209,7 +202,7 @@ fun File.getFirstLine(): String {
 ////
 ////        return logFileEmpty || logFileNotExpired
 //    }
-}
+//}
 
 /**
  * ExternalLogFileDestination == Disk
@@ -222,11 +215,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var rotatingIndexes = List(10) { it }
 
     private var currentLogFile: File? = null
-     private var currentLogFileEstimatedCreatedTime: Long? = null
-
-
-//    private var currentLogFile: File? = null
-//    private var currentLogFileEstimatedCreatedTime: Long? = null
+    private var currentLogFileEstimatedCreatedTime: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -311,10 +300,17 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
         val now = Date().time
-        val possibleLogFiles = rotatingIndexes.map { index ->
-            val filename = "${fileNamePrefix}_${index}.${fileExt}"
-            File(getExternalLogDirectory(), filename)
-        }
+        val possibleLogFiles = rotatingIndexes
+            .map { index ->
+                val filename = "${fileNamePrefix}_${index}.${fileExt}"
+                File(getExternalLogDirectory(), filename)
+            }
+            .filter {
+                // Small hack: Filter out current log file from available list.
+                // It is possible that it's lastModified timestamp may cause the "expiry"
+                // check below to incorrectly flag the file as still available.
+                it.name != currentLogFile?.name
+            }
 
         return try {
             // attempt to find an empty file or one within the expiry window
