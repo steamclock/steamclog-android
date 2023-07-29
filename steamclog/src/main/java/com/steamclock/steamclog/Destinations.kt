@@ -214,9 +214,10 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             return currentLogFile
         }
 
-        val currentFile = findAvailableLogFile(expiryMs)
-        updateCachedLogFile(currentFile)
-        return currentFile
+        // Find new available log file and update cached variables
+        currentLogFile = findAvailableLogFile(expiryMs)
+        currentLogFileEstimatedCreatedTime = Date().time
+        return currentLogFile
     }
 
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
@@ -226,15 +227,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         return currentLogFileEstimatedCreatedTime != null &&
                 currentLogFileCachedTime != null &&
                 now - currentLogFileCachedTime < expiryMs
-    }
-
-    private fun updateCachedLogFile(file: File?) {
-        // Only update if we are changing files; this helps us simulate when a file was "created" so
-        // that we can cycle every 10 mins
-        if (currentLogFile == file) { return }
-
-        currentLogFile = file
-        currentLogFileEstimatedCreatedTime = Date().time
     }
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
