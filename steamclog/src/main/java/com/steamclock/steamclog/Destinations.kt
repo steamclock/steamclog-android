@@ -192,7 +192,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      */
     private fun printLogToExternalFile(message: String) {
         try {
-            getCurrentExternalFile()?.let { file -> file.appendText("$message\r\n") }
+            getExternalFile()?.let { file -> file.appendText("$message\r\n") }
         } catch (e: Exception) {
             logToConsole("HTMLFileTree failed to write into file: $e")
         }
@@ -207,7 +207,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     /**
      * Will get the external file we are currently writing to.
      */
-    private fun getCurrentExternalFile(): File? {
+    private fun getExternalFile(): File? {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
