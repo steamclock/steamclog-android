@@ -151,10 +151,10 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private var fileNamePrefix: String = "sclog"
     private var fileExt = "txt"
-    private var currentLogFile: File? = null
+    private var cachedCurrentLogFile: File? = null
     // Since we cannot get a file's created time, we make note of the timestamp when the
     // logFile was originally marked as being "current".
-    private var currentLogFileEstimatedCreatedTime: Long? = null
+    private var logFileCreatedTimeEstimate: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -211,20 +211,20 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
-            return currentLogFile
+            return cachedCurrentLogFile
         }
 
         // Find new available log file and update cached variables
-        currentLogFile = findAvailableLogFile(expiryMs)
-        currentLogFileEstimatedCreatedTime = Date().time
-        return currentLogFile
+        cachedCurrentLogFile = findAvailableLogFile(expiryMs)
+        logFileCreatedTimeEstimate = Date().time
+        return cachedCurrentLogFile
     }
 
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
         // if you have a cached log file and you checked it within the expiry window
         val now = Date().time
-        val currentLogFileCachedTime = currentLogFileEstimatedCreatedTime
-        return currentLogFileEstimatedCreatedTime != null &&
+        val currentLogFileCachedTime = logFileCreatedTimeEstimate
+        return logFileCreatedTimeEstimate != null &&
                 currentLogFileCachedTime != null &&
                 now - currentLogFileCachedTime < expiryMs
     }
@@ -240,7 +240,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
                 // Small hack: Filter out current log file from available list.
                 // It is possible that it's lastModified timestamp may cause the "expiry"
                 // check below to incorrectly flag the file as still available.
-                it.name != currentLogFile?.name
+                it.name != cachedCurrentLogFile?.name
             }
 
         return try {
