@@ -143,11 +143,18 @@ internal class ConsoleDestination: Timber.DebugTree() {
  * DebugTree gives us access to override createStackElementTag
  */
 internal class ExternalLogFileDestination : Timber.DebugTree() {
+
+    companion object {
+        // Number of log files kept before rotating
+        private const val logFileRotations = 10
+    }
+
     private var fileNamePrefix: String = "sclog"
     private var fileExt = "txt"
     private var currentLogFile: File? = null
+    // Since we cannot get a file's created time, we make note of the timestamp when the
+    // logFile was originally marked as being "current".
     private var currentLogFileEstimatedCreatedTime: Long? = null
-    private var logFileRotations = 10
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -300,8 +307,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     internal fun getLogFileContents(): String {
         removeOldLogFiles()
         val logBuilder = StringBuilder()
-        // Since log files sorted from oldest to newest, and logs contain entries from oldest to
-        // newest, we can cycle through and build up the FULL log from oldest to newest here.
         getLogFiles(LogSort.LastModifiedAsc)?.forEach { file ->
             try {
                 logToConsole("Reading file ${file.name}")
