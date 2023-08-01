@@ -17,20 +17,7 @@ class App : Application() {
             isDebug = BuildConfig.DEBUG,
             fileWritePath = externalCacheDir,
             filtering = appFiltering,
-            detailedLogsOnUserReports = true,
-            extraInfo = { purpose ->
-                when (purpose) {
-                    ExtraInfoPurpose.Error -> {
-                        mapOf("ExtraInfoPurpose" to "Error")
-                    }
-                    ExtraInfoPurpose.Fatal -> {
-                        mapOf("ExtraInfoPurpose" to "Fatal")
-                    }
-                    ExtraInfoPurpose.UserReport -> {
-                        mapOf("ExtraInfoPurpose" to "UserReport")
-                    }
-                }
-            }
+            detailedLogsOnUserReports = true
         ))
     }
 

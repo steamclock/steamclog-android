@@ -55,6 +55,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <CheckBox
+            android:text="Add extra config info"
+            android:id="@+id/enable_extra_config_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="20dp" />

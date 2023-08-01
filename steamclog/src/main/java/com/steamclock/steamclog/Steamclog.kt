@@ -101,7 +101,7 @@ object SteamcLog {
         obj: Any?,
         purpose: ExtraInfoPurpose?
     ) {
-        val extraInfo = purpose?.let { config.extraInfo(purpose) }
+        val extraInfo = purpose?.let { config.extraInfo?.invoke(purpose) }
         val redactableObjectData =  obj?.getRedactedDescription()
         val logUrl = when (purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports) {
             true -> externalLogFileTree.getExternalFile()

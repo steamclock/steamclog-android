@@ -19,6 +19,20 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
+    private fun getExtraInfo(purpose: ExtraInfoPurpose): Map<String, Any> {
+        return when (purpose) {
+            ExtraInfoPurpose.Error -> {
+                mapOf("ExtraInfoPurpose" to "Error")
+            }
+            ExtraInfoPurpose.Fatal -> {
+                mapOf("ExtraInfoPurpose" to "Fatal")
+            }
+            ExtraInfoPurpose.UserReport -> {
+                mapOf("ExtraInfoPurpose" to "UserReport")
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -43,6 +57,9 @@ class MainActivity : AppCompatActivity() {
         }
         binding.enableUserReportLogs.setOnCheckedChangeListener { _, checked ->
             clog.config.detailedLogsOnUserReports = checked
+        }
+        binding.enableExtraConfigInfo.setOnCheckedChangeListener { _, checked ->
+            clog.config.extraInfo = if (checked) { this::getExtraInfo } else null
         }
 
         binding.addUserId.setOnClickListener { clog.setUserId("1234") }
