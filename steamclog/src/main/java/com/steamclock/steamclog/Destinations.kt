@@ -216,7 +216,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
         // Find new available log file and update cached variables
         cachedCurrentLogFile = findAvailableLogFile(expiryMs)
-        logFileCreatedTimeEstimate = Date().time
+        logFileCreatedTimeEstimate = cachedCurrentLogFile?.lastModified()
         return cachedCurrentLogFile
     }
 
