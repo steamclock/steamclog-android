@@ -222,11 +222,9 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
         // if you have a cached log file and you checked it within the expiry window
-        val now = Date().time
-        val currentLogFileCachedTime = logFileCreatedTimeEstimate
-        return logFileCreatedTimeEstimate != null &&
-                currentLogFileCachedTime != null &&
-                now - currentLogFileCachedTime < expiryMs
+        cachedCurrentLogFile ?: return false
+        val logFileCreationTime = logFileCreatedTimeEstimate ?: return false
+        return (Date().time - logFileCreationTime) < expiryMs
     }
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
@@ -249,11 +247,19 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
                 val isExpired = (now - file.lastModified() > expiryMs)
                 if (!file.exists()) true else !isExpired
             }
+
             // if there are no available files, clear the oldest one and use it
             if (currentFile == null) {
                 currentFile = possibleLogFiles.minByOrNull { it.lastModified() }
                 currentFile?.writeText("")
             }
+
+            // If last modified time is null, write to the file to set it since we need it
+            // when calculating an expiry time.
+            if (currentFile?.lastModified() == null || currentFile?.lastModified() == 0L) {
+                currentFile?.writeText("")
+            }
+
             currentFile
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
