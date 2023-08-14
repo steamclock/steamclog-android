@@ -1,10 +1,7 @@
 package com.steamclock.steamclogsample
 
 import android.app.Application
-import com.steamclock.steamclog.Config
-import com.steamclock.steamclog.ExtraInfoPurpose
-import com.steamclock.steamclog.FilterOut
-import com.steamclock.steamclog.clog
+import com.steamclock.steamclog.*
 
 /**
  * steamclog
@@ -16,6 +13,7 @@ class App : Application() {
         clog.initWith(Config(
             isDebug = BuildConfig.DEBUG,
             fileWritePath = externalCacheDir,
+            autoRotateConfig = AutoRotateConfig(10L), // Short rotate so we can more easily test
             filtering = appFiltering,
             detailedLogsOnUserReports = true
         ))

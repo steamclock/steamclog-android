@@ -103,12 +103,9 @@ object SteamcLog {
     ) {
         val extraInfo = purpose?.let { config.extraInfo?.invoke(purpose) }
         val redactableObjectData =  obj?.getRedactedDescription()
-        val logUrl = when (purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports) {
-            true -> externalLogFileTree.getExternalFile()
-            else -> null
-        }
+        val attachLogFiles = purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports
 
-        val wrapper = SteamclogThrowableWrapper(message, throwable, logUrl, redactableObjectData, extraInfo)
+        val wrapper = SteamclogThrowableWrapper(message, throwable, attachLogFiles, redactableObjectData, extraInfo)
         Timber.log(logLevel.javaLevel, wrapper)
     }
 
@@ -180,19 +177,15 @@ object SteamcLog {
      * Log files may be spread out across multiple files; this method will join
      * all log files into a single String.
      */
-    suspend fun getFullLogContents(): String? {
+    fun getFullLogContents(): String? {
         return externalLogFileTree.getLogFileContents()
     }
 
     /**
-     * Returns the latest log file, based on the autoRotateConfig setting.
+     * Returns a list of ALL log files;
      */
-    fun getLastLogFile(): File? {
-        return externalLogFileTree.getExternalFile()
-    }
-
-    fun deleteLogFile() {
-        return externalLogFileTree.deleteLogFile()
+    fun getAllLogFiles(logSort: LogSort): List<File>? {
+        return externalLogFileTree.getLogFiles(logSort)
     }
 
     fun addCustomTree(tree: Timber.Tree) {

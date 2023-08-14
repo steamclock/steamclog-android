@@ -13,6 +13,8 @@ import com.steamclock.steamclogsample.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
 
 
 class MainActivity : AppCompatActivity() {
@@ -222,7 +224,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testLogDump() = GlobalScope.launch(Dispatchers.Main) {
-        binding.demoText.text = SteamcLog.getFullLogContents()
+        var logMetaData = "Log files (Last modified descending): \n\n"
+        SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)?.forEachIndexed { index, file ->
+            val lastModified = SimpleDateFormat("dd-MM HH:mm:ss").format(Date(file.lastModified()))
+            val fileSizeInBytes = file.length() / 1024
+            val fileData = "$index: $lastModified ${file.name} (${fileSizeInBytes}b)"
+            logMetaData += fileData + "\n"
+        }
+
+        logMetaData += "\nFull Content:\n\n" + SteamcLog.getFullLogContents()
+        binding.demoText.text = logMetaData
     }
 
     private fun simulateCrash() {

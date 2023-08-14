@@ -28,6 +28,7 @@ internal class SentryDestination : Timber.Tree() {
 
     companion object {
         const val breadcrumbCategory = "steamclog"
+        const val attachNumLogFiles = 2
     }
 
     override fun isLoggable(priority: Int): Boolean {
@@ -73,11 +74,24 @@ internal class SentryDestination : Timber.Tree() {
                 wrapper?.extraInfo?.let { extras = it }
             }
 
-            val hintWithAttachment = wrapper?.logAttachmentUrl?.let {logFile ->
-                Hint.withAttachment(Attachment(logFile.absolutePath))
+            // Attach log files if desired
+            val hintWithAttachments = when (wrapper?.attachLogFiles) {
+                true -> {
+                    val attachments = mutableListOf<Attachment>()
+                    // Sort by descending modified time so that we get the "latest" log files
+                    SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                        ?.take(attachNumLogFiles)
+                        ?.forEach { file -> attachments += Attachment(file.absolutePath) }
+
+                    when (attachments.size) {
+                        0 -> null
+                        else -> Hint.withAttachments(attachments.toList())
+                    }
+                }
+                else -> null
             }
 
-            Sentry.captureEvent(sentryEvent, hintWithAttachment)
+            Sentry.captureEvent(sentryEvent, hintWithAttachments)
         }
     }
 
@@ -124,19 +138,23 @@ internal class ConsoleDestination: Timber.DebugTree() {
         super.log(priority, createCustomStackElementTag(), fullMessage, originalThrowable)
     }
 }
-
 /**
  * ExternalLogFileDestination == Disk
  * DebugTree gives us access to override createStackElementTag
  */
 internal class ExternalLogFileDestination : Timber.DebugTree() {
+
+    companion object {
+        // Number of log files kept before rotating
+        private const val logFileRotations = 10
+    }
+
     private var fileNamePrefix: String = "sclog"
     private var fileExt = "txt"
-
-    private var rotatingIndexes = List(10) { it }
-
     private var cachedCurrentLogFile: File? = null
-    private var currentLogFileCachedTime: Long? = null
+    // Since we cannot get a file's created time, we make note of the timestamp when the
+    // logFile was originally marked as being "current".
+    private var logFileCreatedTimeEstimate: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
         return isLoggable(SteamcLog.config.logLevel.disk, priority)
@@ -186,38 +204,42 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         return logDirectory
     }
 
-    fun getExternalFile(): File? {
+    /**
+     * Will get the external file we are currently writing to.
+     */
+    private fun getExternalFile(): File? {
         val expiryMs = SteamcLog.config.autoRotateConfig.fileRotationSeconds * 1000 // defaults to 10 minutes
 
         if (isCachedLogFileValid(expiryMs)) {
             return cachedCurrentLogFile
         }
 
-        val currentFile = findAvailableLogFile(expiryMs)
-        updateCachedLogFile(currentFile)
-        return currentFile
+        // Find new available log file and update cached variables
+        cachedCurrentLogFile = findAvailableLogFile(expiryMs)
+        logFileCreatedTimeEstimate = cachedCurrentLogFile?.lastModified()
+        return cachedCurrentLogFile
     }
 
     private fun isCachedLogFileValid(expiryMs: Long): Boolean {
         // if you have a cached log file and you checked it within the expiry window
-        val now = Date().time
-        val currentLogFileCachedTime = currentLogFileCachedTime
-        return cachedCurrentLogFile != null &&
-                currentLogFileCachedTime != null &&
-                now - currentLogFileCachedTime < expiryMs
-    }
-
-    private fun updateCachedLogFile(file: File?) {
-        cachedCurrentLogFile = file
-        currentLogFileCachedTime = Date().time
+        cachedCurrentLogFile ?: return false
+        val logFileCreationTime = logFileCreatedTimeEstimate ?: return false
+        return (Date().time - logFileCreationTime) < expiryMs
     }
 
     private fun findAvailableLogFile(expiryMs: Long): File? {
         val now = Date().time
-        val possibleLogFiles = rotatingIndexes.map { index ->
-            val filename = "${fileNamePrefix}_${index}.${fileExt}"
-            File(getExternalLogDirectory(), filename)
-        }
+        val possibleLogFiles = List(logFileRotations) { it }
+            .map { index ->
+                val filename = "${fileNamePrefix}_${index}.${fileExt}"
+                File(getExternalLogDirectory(), filename)
+            }
+            .filter {
+                // Small hack: Filter out current log file from available list.
+                // It is possible that it's lastModified timestamp may cause the "expiry"
+                // check below to incorrectly flag the file as still available.
+                it.name != cachedCurrentLogFile?.name
+            }
 
         return try {
             // attempt to find an empty file or one within the expiry window
@@ -225,11 +247,19 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
                 val isExpired = (now - file.lastModified() > expiryMs)
                 if (!file.exists()) true else !isExpired
             }
+
             // if there are no available files, clear the oldest one and use it
             if (currentFile == null) {
                 currentFile = possibleLogFiles.minByOrNull { it.lastModified() }
                 currentFile?.writeText("")
             }
+
+            // If last modified time is null, write to the file to set it since we need it
+            // when calculating an expiry time.
+            if (currentFile?.lastModified() == null || currentFile?.lastModified() == 0L) {
+                currentFile?.writeText("")
+            }
+
             currentFile
         } catch (e: Exception) {
             // Do not call Timber here, or will will infinitely loop
@@ -253,10 +283,29 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
     }
 
-    internal suspend fun getLogFileContents(): String? {
+    /**
+     * Returns the list of log files written to the log directory, sorted by the desired method.
+     */
+    fun getLogFiles(sort: LogSort): List<File>? {
+        return when (sort) {
+            LogSort.LastModifiedAsc -> {
+                getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }
+            }
+            LogSort.LastModifiedDesc -> {
+                getExternalLogDirectory()?.listFiles()?.sortedByDescending { it.lastModified() }
+            }
+        }
+    }
+
+    /**
+     * Returns the content of ALL log files strung together to form a single String.
+     * todo Given the size of the log files it may not be feasible to output this. This meathod
+     *   was mostly used by the sample app to test out how the files are being split up.
+     */
+    internal fun getLogFileContents(): String {
         removeOldLogFiles()
         val logBuilder = StringBuilder()
-        getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }?.forEach { file ->
+        getLogFiles(LogSort.LastModifiedAsc)?.forEach { file ->
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
@@ -269,10 +318,6 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
 
         return logBuilder.toString()
-    }
-
-    internal fun deleteLogFile() {
-        getExternalFile()?.delete()
     }
 }
 
