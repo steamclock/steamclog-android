@@ -1,7 +1,5 @@
 package com.steamclock.steamclog
 
-import java.io.File
-
 /**
  * SteamclogThrowableWrapper
  * Enables multiple types of data to be passed to our Destinations.
@@ -11,7 +9,7 @@ import java.io.File
 data class SteamclogThrowableWrapper(
     val originalMessage: String,
     val originalThrowable: Throwable?,
-    val logAttachmentUrl: File?,
+    val attachLogFiles: Boolean?,
     val redactedObjectData: String?,
     val extraInfo: Map<String, Any>?): Throwable(originalMessage)
 {
@@ -22,7 +20,7 @@ data class SteamclogThrowableWrapper(
                 ?: SteamclogThrowableWrapper(
                     throwable.message ?: throwable.toString(),
                     originalThrowable = throwable,
-                    logAttachmentUrl = null,
+                    attachLogFiles = false, // Currently only attaching logs on User Reports.
                     redactedObjectData = null,
                     extraInfo = null
                 )
