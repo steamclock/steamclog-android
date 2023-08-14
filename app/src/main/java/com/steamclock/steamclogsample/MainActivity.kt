@@ -40,9 +40,6 @@ class MainActivity : AppCompatActivity() {
         binding.singleNonFatal.setOnClickListener{ testSingleNonFatal() }
         binding.userReport.setOnClickListener { testUserReport() }
         binding.logBlockedException.setOnClickListener { testBlockedException() }
-        binding.trackAnalytic.setOnClickListener {
-            Toast.makeText(applicationContext, "Not supported", Toast.LENGTH_LONG).show()
-        }
         binding.enableUserReportLogs.setOnCheckedChangeListener { _, checked ->
             clog.config.detailedLogsOnUserReports = checked
         }

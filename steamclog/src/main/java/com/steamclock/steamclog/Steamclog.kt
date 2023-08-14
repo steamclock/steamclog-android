@@ -109,41 +109,6 @@ object SteamcLog {
         Timber.log(logLevel.javaLevel, wrapper)
     }
 
-    // todo #64 Re-implement track method; was removed when we ported over to using Sentry
-//    fun track(@NonNls id: String, data: Map<String, Any?>) {
-//        if (!config.logLevel.analyticsEnabled) {
-//            logInternal(LogLevel.Info, "Anayltics not enabled ($id)")
-//            return
-//        }
-//
-//        if (config.firebaseAnalytics == null) {
-//            logInternal(LogLevel.Info, "Firebase analytics instance not set ($id)")
-//            return
-//        }
-//
-//        val bundle = Bundle()
-//        data.forEach { (key, value) ->
-//            when (value) {
-//                is Redactable -> {
-//                    bundle.putString(key, value.getRedactedDescription())
-//                }
-//                is Serializable -> {
-//                    bundle.putSerializable(key, value)
-//                }
-//                is Parcelable -> {
-//                    bundle.putParcelable(key, value)
-//                }
-//                else -> {
-//                    warn("Failed to encode $value to bundle, must be either parcelable, serializable or redactable")
-//                    return
-//                }
-//            }
-//        }
-//
-//        // Obtain the FirebaseAnalytics instance from the config.
-//        config.firebaseAnalytics?.apply { logEvent(id, bundle) }
-//    }
-
     //---------------------------------------------
     // Public util methods
     //---------------------------------------------

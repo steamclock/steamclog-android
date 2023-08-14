@@ -91,6 +91,22 @@
 
             <Button
                 style="@style/Widget.AppCompat.Button.Colored"
+                android:id="@+id/dump_file_button"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="SHOW FILE DUMP"
+                android:layout_gravity="center"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                style="@style/Widget.AppCompat.Button.Colored"
                 android:id="@+id/single_non_fatal"
                 android:layout_width="0dp"
                 android:layout_weight="1"
@@ -118,34 +134,6 @@
 
             <Button
                 style="@style/Widget.AppCompat.Button.Colored"
-                android:id="@+id/log_blocked_exception"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Report Blocked Exception"
-                android:backgroundTint="@android:color/holo_red_dark"
-                android:layout_gravity="center"/>
-
-            <Button
-                style="@style/Widget.AppCompat.Button.Colored"
-                android:id="@+id/track_analytic"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Report Analytic Event"
-                android:backgroundTint="@android:color/holo_red_dark"
-                android:layout_gravity="center"/>
-
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                style="@style/Widget.AppCompat.Button.Colored"
                 android:id="@+id/user_report"
                 android:layout_width="0dp"
                 android:layout_weight="1"
@@ -156,11 +144,12 @@
 
             <Button
                 style="@style/Widget.AppCompat.Button.Colored"
-                android:id="@+id/dump_file_button"
+                android:id="@+id/log_blocked_exception"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="SHOW FILE DUMP"
+                android:text="Report Blocked Exception"
+                android:backgroundTint="@android:color/holo_red_dark"
                 android:layout_gravity="center"/>
 
         </LinearLayout>
