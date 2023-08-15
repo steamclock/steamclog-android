@@ -63,7 +63,7 @@ data class Config(
      * extra info passed into individual logging functions, this info is not redacted in any
      * way even if requireRedacted is set, the callback must handle and privacy preservation or redaction
      */
-    var extraInfo: (ExtraInfoPurpose) -> Map<String, Any>
+    var extraInfo: ((ExtraInfoPurpose) -> Map<String, Any>)? = null
 ) {
     override fun toString(): String {
         return "Config(" +
