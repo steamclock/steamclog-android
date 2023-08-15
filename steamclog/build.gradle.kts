@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.timber)
     // https://github.com/getsentry/sentry-java/releases
     implementation(libs.sentry.android)
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
 }
