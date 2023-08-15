@@ -8,14 +8,25 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.steamclock.steamclog.*
 import com.steamclock.steamclogsample.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
-import java.util.Date
-
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -59,6 +70,14 @@ class MainActivity : AppCompatActivity() {
         }
         binding.enableExtraConfigInfo.setOnCheckedChangeListener { _, checked ->
             clog.config.extraInfo = if (checked) { this::getExtraInfo } else null
+        }
+        binding.forceInvalidPathCheck.setOnCheckedChangeListener { _, checked ->
+            val filePath = if (checked) File("Idontexist") else externalCacheDir
+            val updatedConfig = updateConfigFilePath(filePath)
+            clog.initWith(
+                context = applicationContext,
+                config = updatedConfig
+            )
         }
 
         binding.addUserId.setOnClickListener { clog.setUserId("1234") }
@@ -106,13 +125,32 @@ class MainActivity : AppCompatActivity() {
                 clog.warn("LogLevel changed to ${clog.config.logLevel.title}")
             }
         }
+
+        // Testing app DataStore to make sure having a Steamclog datastore won't interfere with an
+        // app's local DataStore; this test won't be visible in app, devs can verify datastore read/write
+        // in console logs after the app is launched.
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    // Doesn't need to be lifecycle aware for this test
+                    val timestamp =
+                    AppDataStore(baseContext).apply {
+                        var testValueBefore = getTestValue.firstOrNull()
+                        setTestValue("UpdatedValue @ ${Date().time}")
+                        var testValueAfter = getTestValue.firstOrNull()
+                        clog.debug("Testing app DataStore functionality")
+                        clog.debug("Before: $testValueBefore, After: $testValueAfter")
+                    }
+                }
+            }
+        }
     }
+
     private fun showMessageIfCrashReportingNotEnabled() {
         if (clog.config.logLevel.remote == LogLevel.None) {
             Toast.makeText(applicationContext,
                 "Set Log Level to Release or Release Advanced to enable crash reporting",
                 Toast.LENGTH_LONG).show()
-
         }
     }
 
@@ -245,6 +283,21 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(applicationContext, "Copied to clipboard", Toast.LENGTH_LONG).show()
     }
 
+    private fun updateConfigFilePath(newFileWritePath: File?): Config {
+        // Only the fileWrite path is changed, everything else retains current config values.
+        return Config(
+            isDebug = clog.config.isDebug,
+            fileWritePath = newFileWritePath,
+            keepLogsForDays = clog.config.keepLogsForDays,
+            autoRotateConfig = clog.config.autoRotateConfig,
+            requireRedacted = clog.config.requireRedacted,
+            filtering = clog.config.filtering,
+            logLevel = clog.config.logLevel,
+            detailedLogsOnUserReports = clog.config.detailedLogsOnUserReports,
+            extraInfo = clog.config.extraInfo
+        )
+    }
+
     // Test logging objects
     class RedactableParent : Any(), Redactable {
         val safeProp = "name"
@@ -271,5 +324,27 @@ class MainActivity : AppCompatActivity() {
     sealed class AnalyticEvent(val id: String, val data: Map<String, Any>) {
         object TestButtonPressed: AnalyticEvent("test_button_pressed", mapOf())
         object TestButtonPressedWithRedactable: AnalyticEvent("test_button_pressed", mapOf("redactableObject" to RedactableChild()))
+    }
+}
+
+/**
+ * Verifying that we can have a DataStore in the app "separate" from the Steamclog DataStore
+ */
+private class AppDataStore(private val context: Context) {
+    companion object {
+        private val Context.AppDataStore: DataStore<Preferences> by preferencesDataStore(name = "AppDataStore")
+        private val testKey = stringPreferencesKey("testKey")
+    }
+
+    /**
+     * hasReportedFilepathError indicates if Steamclog has reported a Sentry error regarding
+     * it's inability to use the given filePath to store logs.
+     */
+    val getTestValue: Flow<String>
+        get() = context.AppDataStore.data.map {
+            it[testKey] ?: "DefaultText"
+        }
+    suspend fun setTestValue(value: String) {
+        context.AppDataStore.edit { it[testKey] = value }
     }
 }

@@ -1,7 +1,15 @@
 package com.steamclock.steamclogsample
 
 import android.app.Application
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.steamclock.steamclog.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * steamclog
@@ -10,13 +18,16 @@ import com.steamclock.steamclog.*
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
-        clog.initWith(Config(
-            isDebug = BuildConfig.DEBUG,
-            fileWritePath = externalCacheDir,
-            autoRotateConfig = AutoRotateConfig(10L), // Short rotate so we can more easily test
-            filtering = appFiltering,
-            detailedLogsOnUserReports = true
-        ))
+        clog.initWith(
+            context = applicationContext,
+            config = Config(
+                isDebug = BuildConfig.DEBUG,
+                fileWritePath = externalCacheDir,
+                autoRotateConfig = AutoRotateConfig(10L), // Short rotate so we can more easily test
+                filtering = App.appFiltering,
+                detailedLogsOnUserReports = true
+            )
+        )
     }
 
     companion object {
