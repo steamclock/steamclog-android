@@ -7,7 +7,9 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Allow more than one log to be attached to a Sentry report (#115)
 - Fixed issue with log auto rotation (#115)
 - Removed unused "track" code (#64)
+- Config.extraInfo now optional (#114)
 
+---
 
 ## Jitpack v2.3 : Jun 19, 2023
 - Added UserReports (#110)

@@ -15,20 +15,7 @@ class App : Application() {
             fileWritePath = externalCacheDir,
             autoRotateConfig = AutoRotateConfig(10L), // Short rotate so we can more easily test
             filtering = appFiltering,
-            detailedLogsOnUserReports = true,
-            extraInfo = { purpose ->
-                when (purpose) {
-                    ExtraInfoPurpose.Error -> {
-                        mapOf("ExtraInfoPurpose" to "Error")
-                    }
-                    ExtraInfoPurpose.Fatal -> {
-                        mapOf("ExtraInfoPurpose" to "Fatal")
-                    }
-                    ExtraInfoPurpose.UserReport -> {
-                        mapOf("ExtraInfoPurpose" to "UserReport")
-                    }
-                }
-            }
+            detailedLogsOnUserReports = true
         ))
     }
 
