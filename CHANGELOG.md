@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## Unreleased 
+## Jitpack v2.4 : Aug 15, 2023
 - Allow more than one log to be attached to a Sentry report (#115)
 - Fixed issue with log auto rotation (#115)
 - Removed unused "track" code (#64)
