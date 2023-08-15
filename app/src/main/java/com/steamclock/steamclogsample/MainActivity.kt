@@ -335,11 +335,6 @@ private class AppDataStore(private val context: Context) {
         private val Context.AppDataStore: DataStore<Preferences> by preferencesDataStore(name = "AppDataStore")
         private val testKey = stringPreferencesKey("testKey")
     }
-
-    /**
-     * hasReportedFilepathError indicates if Steamclog has reported a Sentry error regarding
-     * it's inability to use the given filePath to store logs.
-     */
     val getTestValue: Flow<String>
         get() = context.AppDataStore.data.map {
             it[testKey] ?: "DefaultText"
