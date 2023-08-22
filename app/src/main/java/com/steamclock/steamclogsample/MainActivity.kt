@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             val filePath = if (checked) File("Idontexist") else externalCacheDir
             val updatedConfig = updateConfigFilePath(filePath)
             clog.initWith(
-                context = applicationContext,
+                application = application,
                 config = updatedConfig
             )
         }
@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     // Doesn't need to be lifecycle aware for this test
                     val timestamp =
-                    AppDataStore(baseContext).apply {
+                    AppDataStore(applicationContext).apply {
                         var testValueBefore = getTestValue.firstOrNull()
                         setTestValue("UpdatedValue @ ${Date().time}")
                         var testValueAfter = getTestValue.firstOrNull()

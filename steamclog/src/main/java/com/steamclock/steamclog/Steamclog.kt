@@ -2,6 +2,7 @@
 
 package com.steamclock.steamclog
 
+import android.app.Application
 import android.content.Context
 import io.sentry.Sentry
 import io.sentry.protocol.User
@@ -51,7 +52,7 @@ object SteamcLog {
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
     }
 
-    fun initWith(context: Context, config: Config) {
+    fun initWith(application: Application, config: Config) {
         this.config = config
 
         // Setup ExternalLogFileDestination
@@ -67,9 +68,9 @@ object SteamcLog {
             try {
                 // Attempt to log error only once to avoid overwhelming Sentry.
                 // runBlocking usage was recommended in the google docs as the way to synchronously
-                // call the datastore methods; we need to use this with caution, but
+                // call the datastore methods; we need to use this with caution
                 // https://developer.android.com/topic/libraries/architecture/datastore#synchronous
-                val dataStore = SClogDataStore(context)
+                val dataStore = SClogDataStore(application)
                 val alreadyReportedFailure = runBlocking { dataStore.getHasReportedFilepathError.first() }
                 val isSentryEnabled = clog.config.logLevel.remote != LogLevel.None
 
