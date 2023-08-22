@@ -19,7 +19,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         clog.initWith(
-            context = applicationContext,
+            application = this,
             config = Config(
                 isDebug = BuildConfig.DEBUG,
                 fileWritePath = externalCacheDir,

@@ -1,5 +1,6 @@
 package com.steamclock.steamclog
 
+import android.app.Application
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.preferencesDataStore
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.map
 /**
  * https://developer.android.com/topic/libraries/architecture/datastore
  */
-class SClogDataStore(private val context: Context) {
+class SClogDataStore(private val application: Application) {
     companion object {
         private val Context.SClogDataStore: DataStore<Preferences> by preferencesDataStore(name = "SClogDataStore")
         private val hasReportedFilepathErrorKey = booleanPreferencesKey("has_logged_file_creation_failure")
@@ -23,10 +24,10 @@ class SClogDataStore(private val context: Context) {
      * it's inability to use the given filePath to store logs.
      */
     val getHasReportedFilepathError: Flow<Boolean>
-        get() = context.SClogDataStore.data.map {
+        get() = application.SClogDataStore.data.map {
             it[hasReportedFilepathErrorKey] ?: false
         }
     suspend fun setHasReportedFilepathError(value: Boolean) {
-        context.SClogDataStore.edit { it[hasReportedFilepathErrorKey] = value }
+        application.SClogDataStore.edit { it[hasReportedFilepathErrorKey] = value }
     }
 }
