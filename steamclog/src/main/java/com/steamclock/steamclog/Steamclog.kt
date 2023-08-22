@@ -8,6 +8,7 @@ import io.sentry.Sentry
 import io.sentry.protocol.User
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -87,12 +88,12 @@ object SteamcLog {
                 // call the datastore methods; we need to use this with caution
                 // https://developer.android.com/topic/libraries/architecture/datastore#synchronous
                 val dataStore = SClogDataStore(application)
-                val alreadyReportedFailure = runBlocking { dataStore.getHasReportedFilepathError.first() }
+                val alreadyReportedFailure = dataStore.getHasReportedFilepathError.firstOrNull()
                 val isSentryEnabled = clog.config.logLevel.remote != LogLevel.None
 
-                if (isSentryEnabled && !alreadyReportedFailure) {
+                if (isSentryEnabled && alreadyReportedFailure == false) {
                     logInternal(LogLevel.Error, sentryErrorTitle)
-                    runBlocking { dataStore.setHasReportedFilepathError(true) }
+                    dataStore.setHasReportedFilepathError(true)
                 } else {
                     logInternal(LogLevel.Warn, sentryErrorTitle)
                 }
