@@ -1,5 +1,6 @@
 package com.steamclock.steamclogsample
 
+import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -134,7 +135,7 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     // Doesn't need to be lifecycle aware for this test
                     val timestamp =
-                    AppDataStore(applicationContext).apply {
+                    AppDataStore(application).apply {
                         var testValueBefore = getTestValue.firstOrNull()
                         setTestValue("UpdatedValue @ ${Date().time}")
                         var testValueAfter = getTestValue.firstOrNull()
@@ -330,16 +331,16 @@ class MainActivity : AppCompatActivity() {
 /**
  * Verifying that we can have a DataStore in the app "separate" from the Steamclog DataStore
  */
-private class AppDataStore(private val context: Context) {
+private class AppDataStore(private val application: Application) {
     companion object {
         private val Context.AppDataStore: DataStore<Preferences> by preferencesDataStore(name = "AppDataStore")
         private val testKey = stringPreferencesKey("testKey")
     }
     val getTestValue: Flow<String>
-        get() = context.AppDataStore.data.map {
+        get() = application.AppDataStore.data.map {
             it[testKey] ?: "DefaultText"
         }
     suspend fun setTestValue(value: String) {
-        context.AppDataStore.edit { it[testKey] = value }
+        application.AppDataStore.edit { it[testKey] = value }
     }
 }
