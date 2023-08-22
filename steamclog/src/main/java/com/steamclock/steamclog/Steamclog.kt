@@ -6,8 +6,8 @@ import android.app.Application
 import android.content.Context
 import io.sentry.Sentry
 import io.sentry.protocol.User
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -31,6 +31,7 @@ object SteamcLog {
     private var customDebugTree: ConsoleDestination
     private var sentryTree: SentryDestination
     private var externalLogFileTree: ExternalLogFileDestination
+    private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     //---------------------------------------------
     // Public properties
@@ -62,8 +63,23 @@ object SteamcLog {
             // We have seen issues where some devices are failing to support some of the default file
             // paths (ie. externalCacheDir); the code below attempts to catch that case and report it
             // proactively to Sentry as an error once per app install.
+            checkForLogAccessError(application, this.config.fileWritePath)
+        }
+        logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
+    }
+
+    /**
+     * We have seen issues where some devices are failing to support some of the default file
+     * paths (ie. externalCacheDir); the code below attempts to catch that case and report it
+     * proactively to Sentry as an error once per app install.
+     */
+    private fun checkForLogAccessError(application: Application, fileWritePath: File?) {
+        coroutineScope.launch {
+            // We have seen issues where some devices are failing to support some of the default file
+            // paths (ie. externalCacheDir); the code below attempts to catch that case and report it
+            // proactively to Sentry as an error once per app install.
             val sentryErrorTitle = "Steamclog could not create external logs"
-            logInternal(LogLevel.Info, "File path ${this.config.fileWritePath} is invalid")
+            logInternal(LogLevel.Info, "File path $fileWritePath is invalid")
 
             try {
                 // Attempt to log error only once to avoid overwhelming Sentry.
@@ -86,8 +102,6 @@ object SteamcLog {
                 logInternal(LogLevel.Error, sentryErrorTitle)
             }
         }
-
-        logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
     }
 
     //---------------------------------------------
