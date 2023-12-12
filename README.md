@@ -55,9 +55,16 @@ Steamclog is currently hosted on Jitpack; to include it in your project:
 ```
 Most recent version can be found [here](https://github.com/steamclock/steamclog-android/releases)
 
-3. Sync your project gradle files
+3. Add the following exclusion in your app module's build.gradle. As of Sentry 3.1.0 the Sentry library includes a Timber integration that will conflict with Steamclog's Timber integration, causing duplicate errors to be logged. To avoid this, we need to exclude the Sentry Timber integration from the Sentry library. See https://docs.sentry.io/platforms/android/integrations/timber/ for details.
+```
+    configurations.configureEach {
+      exclude group: "io.sentry", module: "sentry-android-timber"
+    }
+```
 
-4. `Steamclog` singleton should now be available
+4Sync your project gradle files
+
+5`Steamclog` singleton should now be available
 
 ### Initialization (Required)
 
