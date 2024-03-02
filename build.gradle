@@ -5,7 +5,8 @@ buildscript {
         "compileSdk": 33,
         "kotlin": "1.8.10",
         "timber": "5.0.1",
-        "sentry": "6.23.0"
+        "sentry": "6.23.0",
+        "dataStore" : "1.0.0"
     ]
 
     repositories {

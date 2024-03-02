@@ -61,6 +61,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <CheckBox
+            android:text="Force invalid file write path"
+            android:id="@+id/force_invalid_path_check"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="20dp" />

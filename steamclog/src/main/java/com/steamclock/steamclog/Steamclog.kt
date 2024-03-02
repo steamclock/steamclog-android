@@ -2,8 +2,13 @@
 
 package com.steamclock.steamclog
 
+import android.app.Application
+import android.content.Context
 import io.sentry.Sentry
 import io.sentry.protocol.User
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
@@ -27,6 +32,7 @@ object SteamcLog {
     private var customDebugTree: ConsoleDestination
     private var sentryTree: SentryDestination
     private var externalLogFileTree: ExternalLogFileDestination
+    private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     //---------------------------------------------
     // Public properties
@@ -48,14 +54,55 @@ object SteamcLog {
         // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
     }
 
-    fun initWith(config: Config) {
+    fun initWith(application: Application, config: Config) {
         this.config = config
-        this.config.fileWritePath?.let {
+
+        // Setup ExternalLogFileDestination
+        if (this.config.fileWritePath != null && this.config.fileWritePath!!.exists()) {
             updateTree(externalLogFileTree, true)
-        } ?: run {
-            logInternal(LogLevel.Warn, "fileWritePath given was null; cannot log to external file")
+        } else {
+            // We have seen issues where some devices are failing to support some of the default file
+            // paths (ie. externalCacheDir); the code below attempts to catch that case and report it
+            // proactively to Sentry as an error once per app install.
+            checkForLogAccessError(application, this.config.fileWritePath)
         }
         logInternal(LogLevel.Info, "Steamclog initialized:\n$this")
+    }
+
+    /**
+     * We have seen issues where some devices are failing to support some of the default file
+     * paths (ie. externalCacheDir); the code below attempts to catch that case and report it
+     * proactively to Sentry as an error once per app install.
+     */
+    private fun checkForLogAccessError(application: Application, fileWritePath: File?) {
+        coroutineScope.launch {
+            // We have seen issues where some devices are failing to support some of the default file
+            // paths (ie. externalCacheDir); the code below attempts to catch that case and report it
+            // proactively to Sentry as an error once per app install.
+            val sentryErrorTitle = "Steamclog could not create external logs"
+            logInternal(LogLevel.Info, "File path $fileWritePath is invalid")
+
+            try {
+                // Attempt to log error only once to avoid overwhelming Sentry.
+                // runBlocking usage was recommended in the google docs as the way to synchronously
+                // call the datastore methods; we need to use this with caution
+                // https://developer.android.com/topic/libraries/architecture/datastore#synchronous
+                val dataStore = SClogDataStore(application)
+                val alreadyReportedFailure = dataStore.getHasReportedFilepathError.firstOrNull()
+                val isSentryEnabled = clog.config.logLevel.remote != LogLevel.None
+
+                if (isSentryEnabled && alreadyReportedFailure == false) {
+                    logInternal(LogLevel.Error, sentryErrorTitle)
+                    dataStore.setHasReportedFilepathError(true)
+                } else {
+                    logInternal(LogLevel.Warn, sentryErrorTitle)
+                }
+            } catch (e: Exception) {
+                logInternal(LogLevel.Info, "Could not read local DataStore")
+                logInternal(LogLevel.Info, e.message ?: "No error message given")
+                logInternal(LogLevel.Error, sentryErrorTitle)
+            }
+        }
     }
 
     //---------------------------------------------
