@@ -18,7 +18,7 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.steamclock.steamclog'
                 artifactId = 'release'
-                version = 'v2.4'
+                version = 'v2.5'
             }
         }
     }
@@ -27,18 +27,21 @@ afterEvaluate {
 android {
     compileSdkVersion versions.compileSdk
 
+    publishing {
+        //Publish your app as an AAB
+        singleVariant("release")
+    }
+
     // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
     // Added for Sentry support
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion versions.compileSdk
-        versionCode 4
-        versionName "2.4"
         consumerProguardFiles "consumer-rules.pro"
     }
 
