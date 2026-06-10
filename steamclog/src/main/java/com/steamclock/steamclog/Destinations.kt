@@ -278,8 +278,9 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
 
         for (file in deleteThese) {
-            logToConsole("Deleting file ${file.name}")
-            file.delete()
+            if (!file.delete()) {
+                logToConsole("Failed to delete log file ${file.name}")
+            }
         }
     }
 
