@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
+## Jitpack v2.5 : Jun 10, 2026
+- Bumped compileSdk and targetSdk to 35, minSdk raised to 23
+- Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 8.13
+- Updated Kotlin 2.0.0 → 2.4.0
+- Updated Sentry Android SDK 7.9.0 → 8.43.1, Sentry Gradle Plugin 4.5.1 → 6.10.0
+- Updated kotlinx-coroutines 1.9.0 → 1.11.0, appcompat 1.7.0 → 1.7.1, constraintlayout 2.2.0 → 2.2.1, material 1.12.0 → 1.14.0
+- Fixed Sentry 8.x API compatibility: clearUserId() and SentryEvent extras
+
+---
+
 ## Jitpack v2.4 : Aug 15, 2023
 - Allow more than one log to be attached to a Sentry report (#115)
 - Fixed issue with log auto rotation (#115)
