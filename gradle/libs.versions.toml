@@ -1,0 +1,27 @@
+[versions]
+agp = "8.13.2"
+kotlin = "2.4.0"
+sentry = "8.43.1"
+sentry-plugin = "6.10.0"
+timber = "5.0.1"
+coroutines = "1.11.0"
+junit = "4.13.2"
+appcompat = "1.7.1"
+constraintlayout = "2.2.1"
+material = "1.14.0"
+
+[libraries]
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+sentry-android = { module = "io.sentry:sentry-android", version.ref = "sentry" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentry-plugin" }

@@ -3,9 +3,7 @@ buildscript {
 
     ext.versions = [
         "compileSdk": 35,
-        "kotlin": "2.4.0",
-        "timber": "5.0.1",
-        "sentry": "8.43.1"
+        "kotlin": "2.4.0"
     ]
 
     repositories {
