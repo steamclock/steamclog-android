@@ -1,6 +1,6 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
     // Provides auto-uploading of proguard mappings to Sentry
     id 'io.sentry.android.gradle'
 }
