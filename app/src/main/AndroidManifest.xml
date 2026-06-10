@@ -23,6 +23,7 @@
 
         <meta-data android:name="io.sentry.dsn" android:value="https://59bb07e12aa7421b8f5fd9ae3420c21c@o386150.ingest.sentry.io/5399932" />
 
+        <!-- For some reason io.sentry.auto-init is set to false; this means that Sentry will not capture logs unless we manually init -->
         <meta-data android:name="io.sentry.auto-init" android:value="true" />
 
 
