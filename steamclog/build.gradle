@@ -32,6 +32,10 @@ android {
         singleVariant("release")
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     kotlin {
         jvmToolchain(17)
     }
@@ -59,9 +63,11 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
     // No longer need to include kotlin stdlib dependency
-    implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+    implementation libs.kotlin.reflect
 
-    implementation "com.jakewharton.timber:timber:${versions.timber}"
+    implementation libs.timber
     // https://github.com/getsentry/sentry-java/releases
-    implementation "io.sentry:sentry-android:${versions.sentry}"
+    implementation libs.sentry.android
+
+    testImplementation libs.junit
 }
