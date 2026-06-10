@@ -129,9 +129,7 @@ object SteamcLog {
     }
 
     fun clearUserId() {
-        Sentry.configureScope { scope ->
-            scope.user = null
-        }
+        Sentry.setUser(null)
     }
     
 //    fun setCustomKey(key: String, value: String) {

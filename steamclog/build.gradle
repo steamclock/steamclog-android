@@ -32,15 +32,12 @@ android {
         singleVariant("release")
     }
 
-    // ADD COMPATIBILITY OPTIONS TO BE COMPATIBLE WITH JAVA 1.8
-    // Added for Sentry support
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+    kotlin {
+        jvmToolchain(17)
     }
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion versions.compileSdk
         consumerProguardFiles "consumer-rules.pro"
     }
