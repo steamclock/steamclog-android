@@ -6,6 +6,8 @@ buildscript {
         "kotlin": "2.4.0"
     ]
 
+    // These repositories are for buildscript classpath resolution only.
+    // Project dependency repositories are declared in settings.gradle.
     repositories {
         google()
         mavenCentral()
@@ -17,14 +19,6 @@ buildscript {
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-
 }
 
 task clean(type: Delete) {
