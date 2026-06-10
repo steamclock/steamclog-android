@@ -1,4 +1,6 @@
 [versions]
+# Held at 8.x: AGP 9.x is available but Sentry Gradle Plugin 6.10.0 predates AGP 9
+# and compatibility is unverified. Revisit when Sentry ships AGP 9 support.
 agp = "8.13.2"
 kotlin = "2.4.0"
 sentry = "8.43.1"
