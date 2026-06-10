@@ -270,10 +270,10 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     private fun removeOldLogFiles() {
         val deleteThese = mutableListOf<File>()
+        val now = System.currentTimeMillis()
         val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
 
         for (file in getExternalLogDirectory()?.listFiles() ?: emptyArray()) {
-            val now = Date().time
             if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
         }
 
