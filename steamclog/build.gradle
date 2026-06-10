@@ -33,7 +33,7 @@ android {
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
     kotlin {
@@ -56,7 +56,7 @@ android {
             minifyEnabled false
         }
     }
-    namespace 'com.steamclock.steamclog'
+    namespace = 'com.steamclock.steamclog'
 }
 
 dependencies {

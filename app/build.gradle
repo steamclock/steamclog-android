@@ -23,8 +23,8 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        viewBinding = true
+        buildConfig = true
     }
 
     defaultConfig {
@@ -45,7 +45,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    namespace 'com.steamclock.steamclogsample'
+    namespace = 'com.steamclock.steamclogsample'
 }
 
 dependencies {
