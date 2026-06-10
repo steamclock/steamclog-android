@@ -25,7 +25,7 @@ afterEvaluate {
 }
 
 android {
-    compileSdkVersion versions.compileSdk
+    compileSdk versions.compileSdk
 
     publishing {
         //Publish your app as an AAB
@@ -41,8 +41,8 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion versions.compileSdk
+        minSdk 23
+        targetSdk versions.compileSdk
         consumerProguardFiles "consumer-rules.pro"
     }
 
@@ -60,7 +60,6 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.jar"])
     // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
     // No longer need to include kotlin stdlib dependency
     implementation libs.kotlin.reflect
