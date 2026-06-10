@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## Jitpack v2.5 : Jun 10, 2026
+## [Unreleased] Jitpack v2.5 : [Add date after release]
 - Bumped compileSdk and targetSdk to 35, minSdk raised to 23
 - Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 8.13
 - Updated Kotlin 2.0.0 → 2.4.0
