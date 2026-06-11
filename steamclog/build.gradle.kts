@@ -1,8 +1,8 @@
 plugins {
-    id 'com.android.library'
-    id 'org.jetbrains.kotlin.android'
-    id 'maven-publish'
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
     // Note, do not apply sentry plugins here; must be done in application module
+    `maven-publish`
 }
 
 // Because the components are created only during the afterEvaluate phase, you must
@@ -11,29 +11,29 @@ afterEvaluate {
     publishing {
         publications {
             // Creates a Maven publication called "release".
-            release(MavenPublication) {
+            create<MavenPublication>("release") {
                 // Applies the component for the release build variant.
-                from components.release
+                from(components["release"])
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'com.steamclock.steamclog'
-                artifactId = 'release'
-                version = 'v2.5'
+                groupId = "com.steamclock.steamclog"
+                artifactId = "release"
+                version = "v2.5"
             }
         }
     }
 }
 
 android {
-    compileSdk versions.compileSdk
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     publishing {
-        //Publish your app as an AAB
+        // Publish the release variant as an AAR
         singleVariant("release")
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
     kotlin {
@@ -41,32 +41,29 @@ android {
     }
 
     defaultConfig {
-        minSdk 23
-        targetSdk versions.compileSdk
-        consumerProguardFiles "consumer-rules.pro"
+        minSdk = 23
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
         debug {
-            debuggable true
-            minifyEnabled false
+            isMinifyEnabled = false
         }
         release {
-            debuggable false
-            minifyEnabled false
+            isMinifyEnabled = false
         }
     }
-    namespace 'com.steamclock.steamclog'
+    namespace = "com.steamclock.steamclog"
 }
 
 dependencies {
     // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
     // No longer need to include kotlin stdlib dependency
-    implementation libs.kotlin.reflect
+    implementation(libs.kotlin.reflect)
 
-    implementation libs.timber
+    implementation(libs.timber)
     // https://github.com/getsentry/sentry-java/releases
-    implementation libs.sentry.android
+    implementation(libs.sentry.android)
 
-    testImplementation libs.junit
+    testImplementation(libs.junit)
 }
