@@ -11,7 +11,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Updated Sentry Android SDK 7.9.0 → 8.43.1, Sentry Gradle Plugin 4.5.1 → 6.10.0
 - Updated kotlinx-coroutines 1.9.0 → 1.11.0, appcompat 1.7.0 → 1.7.1, constraintlayout 2.2.0 → 2.2.1, material 1.12.0 → 1.14.0
 - Fixed Sentry 8.x API compatibility: clearUserId() and SentryEvent extras
-- Modernized Gradle build structure: added version catalog, plugins block, centralized repository declarations
+- Modernized Gradle build structure: added version catalog, plugins block, centralized repository declarations, migrated to Kotlin DSL
 - Fixed API 23 compatibility: replaced Java forEach calls with for loops in file management methods
 
 ---
