@@ -28,7 +28,7 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     publishing {
-        //Publish your app as an AAB
+        // Publish the release variant as an AAR
         singleVariant("release")
     }
 
