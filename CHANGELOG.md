@@ -5,11 +5,13 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 
 ## Jitpack v2.5 : Unreleased
 - Bumped compileSdk and targetSdk to 35, minSdk raised to 23
-- Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 8.13
+- Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 8.14.4
 - Updated Kotlin 2.0.0 → 2.4.0
 - Updated Sentry Android SDK 7.9.0 → 8.43.1, Sentry Gradle Plugin 4.5.1 → 6.10.0
 - Updated kotlinx-coroutines 1.9.0 → 1.11.0, appcompat 1.7.0 → 1.7.1, constraintlayout 2.2.0 → 2.2.1, material 1.12.0 → 1.14.0
 - Fixed Sentry 8.x API compatibility: clearUserId() and SentryEvent extras
+- Modernized Gradle build structure: added version catalog, plugins block, centralized repository declarations
+- Fixed API 23 compatibility: replaced Java forEach calls with for loops in file management methods
 
 ---
 
