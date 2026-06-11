@@ -15,5 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Steamclog"
-include ':steamclog'
-include ':app'
+include(":steamclog")
+include(":app")
