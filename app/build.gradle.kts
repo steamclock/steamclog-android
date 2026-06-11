@@ -16,7 +16,7 @@ configurations.configureEach {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     kotlin {
         jvmToolchain(17)
@@ -30,7 +30,7 @@ android {
     defaultConfig {
         applicationId = "com.steamclock.steamclogsample"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = libs.versions.compileSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
