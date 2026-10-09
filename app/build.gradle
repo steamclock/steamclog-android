@@ -8,7 +8,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     // Provides auto-uploading of proguard mappings to Sentry
-    id 'io.sentry.android.gradle' version '4.5.1'
+    id 'io.sentry.android.gradle' version '6.10.0'
 }
 
 /**
@@ -34,7 +34,7 @@ android {
 
     defaultConfig {
         applicationId "com.steamclock.steamclogsample"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion versions.compileSdk
         versionCode 1
         versionName "1.0"
@@ -58,8 +58,8 @@ android {
 dependencies {
     implementation project(':steamclog')
     // Since Sentry is a dependency of steamclog, we do not have to import it again
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.14.0'
 }

@@ -71,7 +71,7 @@ internal class SentryDestination : Timber.Tree() {
                     setMessage(originalMessage)
                     formatted = originalMessage
                 })
-                wrapper?.extraInfo?.let { extras = it }
+                wrapper?.extraInfo?.let { setExtras(it) }
             }
 
             // Attach log files if desired
