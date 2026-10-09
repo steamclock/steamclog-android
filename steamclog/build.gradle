@@ -1,6 +1,6 @@
 plugins {
     id 'com.android.library'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
     id 'maven-publish'
     // Note, do not apply sentry plugins here; must be done in application module
 }
@@ -25,11 +25,15 @@ afterEvaluate {
 }
 
 android {
-    compileSdkVersion versions.compileSdk
+    compileSdk versions.compileSdk
 
     publishing {
         //Publish your app as an AAB
         singleVariant("release")
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     kotlin {
@@ -37,8 +41,8 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion versions.compileSdk
+        minSdk 23
+        targetSdk versions.compileSdk
         consumerProguardFiles "consumer-rules.pro"
     }
 
@@ -56,12 +60,13 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.jar"])
     // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-rc-released/
     // No longer need to include kotlin stdlib dependency
-    implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+    implementation libs.kotlin.reflect
 
-    implementation "com.jakewharton.timber:timber:${versions.timber}"
+    implementation libs.timber
     // https://github.com/getsentry/sentry-java/releases
-    implementation "io.sentry:sentry-android:${versions.sentry}"
+    implementation libs.sentry.android
+
+    testImplementation libs.junit
 }

@@ -79,9 +79,9 @@ internal class SentryDestination : Timber.Tree() {
                 true -> {
                     val attachments = mutableListOf<Attachment>()
                     // Sort by descending modified time so that we get the "latest" log files
-                    SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
-                        ?.take(attachNumLogFiles)
-                        ?.forEach { file -> attachments += Attachment(file.absolutePath) }
+                    val logFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                        ?.take(attachNumLogFiles) ?: emptyList()
+                    for (file in logFiles) { attachments += Attachment(file.absolutePath) }
 
                     when (attachments.size) {
                         0 -> null
@@ -269,17 +269,18 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     private fun removeOldLogFiles() {
-        val deleteThese = ArrayList<File>()
+        val deleteThese = mutableListOf<File>()
+        val now = System.currentTimeMillis()
         val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
 
-        getExternalLogDirectory()?.listFiles()?.forEach { file ->
-            val now = Date().time
+        for (file in getExternalLogDirectory()?.listFiles() ?: emptyArray()) {
             if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
         }
 
-        deleteThese.forEach { file ->
-            logToConsole("Deleting file ${file.name}")
-            file.delete()
+        for (file in deleteThese) {
+            if (!file.delete()) {
+                logToConsole("Failed to delete log file ${file.name}")
+            }
         }
     }
 
@@ -305,7 +306,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     internal fun getLogFileContents(): String {
         removeOldLogFiles()
         val logBuilder = StringBuilder()
-        getLogFiles(LogSort.LastModifiedAsc)?.forEach { file ->
+        for (file in getLogFiles(LogSort.LastModifiedAsc) ?: emptyList()) {
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
