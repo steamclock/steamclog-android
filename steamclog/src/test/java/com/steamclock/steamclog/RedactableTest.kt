@@ -86,6 +86,22 @@ class RedactableTest {
     }
 
     @Test
+    fun topLevelLeafValuesPrintTheirValue() {
+        assertEquals("5", 5.getRedactedDescription(false))
+        assertEquals("B", Kind.B.getRedactedDescription(false))
+        assertEquals("true", true.getRedactedDescription(false))
+        assertEquals("x", 'x'.getRedactedDescription(false))
+        assertEquals("hi", "hi".getRedactedDescription(false))
+    }
+
+    @Test
+    fun requireRedactedHidesTopLevelLeafValues() {
+        assertEquals("<redacted>", 5.getRedactedDescription(true))
+        assertEquals("<redacted>", Kind.B.getRedactedDescription(true))
+        assertEquals("<redacted>", "secret".getRedactedDescription(true))
+    }
+
+    @Test
     fun requireRedactedHidesPropertiesOfNonRedactableClasses() {
         assertEquals("Boxed(count=<redacted>, id=<redacted>, kind=<redacted>)", Boxed(3, Kind.B, 7L).getRedactedDescription(true))
     }

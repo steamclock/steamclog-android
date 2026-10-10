@@ -23,8 +23,12 @@ fun <T : Any> T.getRedactedDescription(): String = runCatching {
     getRedactedDescription(SteamcLog.config.requireRedacted)
 }.getOrElse { describeFailure(this, it) }
 
-internal fun Any.getRedactedDescription(redactedRequired: Boolean): String =
-    describe(this, redactedRequired, Collections.newSetFromMap(IdentityHashMap()))
+internal fun Any.getRedactedDescription(redactedRequired: Boolean): String = when {
+    // A leaf value logged directly cannot implement Redactable, so redactedRequired alone decides
+    // whether its value is shown, the same rule a leaf property of a non-Redactable class follows.
+    isLeafValue() -> if (redactedRequired) "<redacted>" else toString()
+    else -> describe(this, redactedRequired, Collections.newSetFromMap(IdentityHashMap()))
+}
 
 private fun describe(obj: Any, redactedRequired: Boolean, visited: MutableSet<Any>): String {
     // Track visited objects by identity, so a cycle (or a repeated reference) is not described twice.
