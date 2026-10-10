@@ -42,3 +42,4 @@ output.json
 #NDK
 obj/
 .externalNativeBuild
+.worktrees/
