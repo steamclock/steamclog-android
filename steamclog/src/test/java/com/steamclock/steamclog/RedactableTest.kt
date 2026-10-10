@@ -85,6 +85,28 @@ class RedactableTest {
         )
     }
 
+    class Account(val name: String, val owner: Node) : Redactable {
+        @Suppress("unused")
+        val secret: String
+            get() = throw IllegalStateException("hidden getter read")
+
+        override val safeProperties = setOf("name")
+    }
+
+    @Test
+    fun hiddenPropertiesAreNeverRead() {
+        // The hidden getter throws, so reading it would print <description failed: ...>.
+        assertEquals(
+            "Account(name=a, owner=<redacted>, secret=<redacted>)",
+            Account("a", Node("n")).getRedactedDescription(false)
+        )
+    }
+
+    @Test
+    fun requireRedactedNeverReadsHiddenProperties() {
+        assertEquals("Throwing(boom=<redacted>)", Throwing().getRedactedDescription(true))
+    }
+
     @Test
     fun topLevelLeafValuesPrintTheirValue() {
         assertEquals("5", 5.getRedactedDescription(false))

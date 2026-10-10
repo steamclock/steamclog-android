@@ -43,13 +43,14 @@ private fun describe(obj: Any, redactedRequired: Boolean, visited: MutableSet<An
         val params = clazz.declaredMemberProperties
             .filter { it.name != "safeProperties" }
             .map { property ->
-                // Enable us to access private variables.
-                property.isAccessible = true
-
                 // If class is not redactable, use redactedRequired bool to determine if we want to show/redact the value.
                 val showValue = safeProperties?.contains(property.name) ?: !redactedRequired
 
                 if (showValue) {
+                    // Enable us to access private variables.
+                    // #145: only shown properties touch their accessors. Resolving an accessor loads the
+                    // property's type, which fails in a minified app when R8 renamed that type.
+                    property.isAccessible = true
                     val value = property.get(obj)
                     // Don't recursively call getRedactedDescription on primitives/Strings and other leaf values.
                     // If not dealing with a leaf value, then we may need to recurse down to get full description.
