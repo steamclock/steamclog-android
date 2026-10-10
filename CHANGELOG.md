@@ -13,6 +13,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed Sentry 8.x API compatibility: clearUserId() and SentryEvent extras
 - Modernized Gradle build structure: added version catalog, plugins block, centralized repository declarations, migrated to Kotlin DSL
 - Fixed API 23 compatibility: replaced Java forEach calls with for loops in file management methods
+- Fixed logged object descriptions (#146): cyclic objects no longer crash (a repeated object prints as `<visited ClassName>`), boxed primitives, enums and strings print their value instead of `Integer()`/`Kind()`, both as properties and when logged directly (`<redacted>` when `requireRedacted` is set), and a failure while describing an object prints `<description failed: ...>` instead of throwing. Log output changes for affected objects.
 
 ---
 
