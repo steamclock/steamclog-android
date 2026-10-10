@@ -1,49 +1,81 @@
 package com.steamclock.steamclog
 
+import java.lang.reflect.InvocationTargetException
+import java.util.Collections
+import java.util.IdentityHashMap
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.javaField
 
 
 /**
  * getRedactedDescription Iterates over all class properties and generates a string for us to
  * send for analytics/logging purposes which utilizes our Redactable interface to determine which
  * property values are safe to print and which should be redacted from the output.
+ *
+ * This never throws (#146): an object that was already described is printed as a placeholder,
+ * so cyclic references terminate, and a failure while describing an object (reflection, a
+ * throwing getter) is printed in place of that object's description.
  */
-fun <T : Any> T.getRedactedDescription(): String {
+fun <T : Any> T.getRedactedDescription(): String = runCatching {
     // If a class does not implement Redactable, this boolean allows us to control if we default
     // show or redact the properties of those classes. This enables us to turn on app-wide redaction
     // for all classes.
-    val redactedRequired = SteamcLog.config.requireRedacted
+    getRedactedDescription(SteamcLog.config.requireRedacted)
+}.getOrElse { describeFailure(this, it) }
 
-    val clazz = this.javaClass.kotlin
-    val clazzName = this.javaClass.simpleName
-    val redactable = this as? Redactable
-    val safeProperties = redactable?.safeProperties
+internal fun Any.getRedactedDescription(redactedRequired: Boolean): String =
+    describe(this, redactedRequired, Collections.newSetFromMap(IdentityHashMap()))
 
-    val params = clazz.declaredMemberProperties
-        .filter { it.name != "safeProperties" }
-        .map { property ->
-            // Enable us to access private variables.
-            property.isAccessible = true
+private fun describe(obj: Any, redactedRequired: Boolean, visited: MutableSet<Any>): String {
+    // Track visited objects by identity, so a cycle (or a repeated reference) is not described twice.
+    if (!visited.add(obj)) return "<visited ${obj.javaClass.simpleName}>"
 
-            // Don't recursively call getRedactedDescription on primatives/Strings
-            val isPrimitive = property.javaField?.type?.let { type -> type.isPrimitive || type == String::class.java } ?: run { false }
+    return runCatching {
+        val clazz = obj.javaClass.kotlin
+        val clazzName = obj.javaClass.simpleName
+        val redactable = obj as? Redactable
+        val safeProperties = redactable?.safeProperties
 
-            // If class is not redactable, use redactedRequired bool to determine if we want to show/redact the value.
-            val showValue = safeProperties?.contains(property.name) ?: !redactedRequired
+        val params = clazz.declaredMemberProperties
+            .filter { it.name != "safeProperties" }
+            .map { property ->
+                // Enable us to access private variables.
+                property.isAccessible = true
 
-            // If not dealing with a primitive object, then we may need to recurse down to get full description.
-            val recurseRequired = !isPrimitive && showValue
+                // If class is not redactable, use redactedRequired bool to determine if we want to show/redact the value.
+                val showValue = safeProperties?.contains(property.name) ?: !redactedRequired
 
-            when {
-                recurseRequired -> "${property.name}=${property.get(this)?.getRedactedDescription()}"
-                showValue -> "${property.name}=${property.get(this)}"
-                else -> "${property.name}=<redacted>"
+                if (showValue) {
+                    val value = property.get(obj)
+                    // Don't recursively call getRedactedDescription on primitives/Strings and other leaf values.
+                    // If not dealing with a leaf value, then we may need to recurse down to get full description.
+                    val description = if (value == null || value.isLeafValue()) {
+                        value.toString()
+                    } else {
+                        describe(value, redactedRequired, visited)
+                    }
+                    "${property.name}=$description"
+                } else {
+                    "${property.name}=<redacted>"
+                }
             }
-        }
 
-    return "${clazzName}(${params.joinToString(", ")})"
+        "${clazzName}(${params.joinToString(", ")})"
+    }.getOrElse { describeFailure(obj, it) }
+}
+
+/**
+ * Values printed with toString() rather than described property by property. Their declared Kotlin
+ * properties do not hold their value (boxed primitives and enums have none), so recursing prints
+ * `Integer()` or `Kind()`.
+ */
+private fun Any.isLeafValue(): Boolean =
+    this is Number || this is Boolean || this is Char || this is CharSequence || this is Enum<*>
+
+private fun describeFailure(obj: Any, error: Throwable): String {
+    // Reflection wraps an exception thrown by a getter; name the getter's exception instead.
+    val cause = (error as? InvocationTargetException)?.targetException ?: error
+    return "${obj.javaClass.simpleName}(<description failed: ${cause.javaClass.simpleName}>)"
 }
 
 /**
