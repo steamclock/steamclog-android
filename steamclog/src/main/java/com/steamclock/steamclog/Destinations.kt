@@ -334,16 +334,20 @@ internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Bool
 }
 
 /**
- * Builds the "(FileName.kt:line):method" tag for the code that made the logging call.
+ * IMPORTANT: Must be called from a Destination's "override fun log" method (or other code inside
+ * the SteamcLog library) for the caller frame to be found correctly. The search skips only
+ * SteamcLog and Timber frames, so any other frame between the logging call and this method would
+ * be picked up as the caller.
  *
  * This method helps us get around that fact that because we are wrapping Timber calls, the
  * stacktrace information associated with the location of the report is relative to the Steamclog
  * codebase, and not the location where actual sclog method was invoked.
  *
  * Since Timber's createStackElementTag is made unusable since getTag is final (and gives
- * us the incorrect stacktrace location), this method creates a dummy Throwable and searches its
- * stacktrace for the first frame outside SteamcLog and Timber. This works the same for calls made
- * through SteamcLog and for direct Timber calls (#144).
+ * us the incorrect stacktrace location), this method attempts to generate the desired stacktrace
+ * by creating a dummy Throwable and searching its stacktrace for the first frame that is not part
+ * of the Steamclog or Timber call chain. This works the same for calls made through SteamcLog and
+ * for direct Timber calls (#144).
  *
  * This is based on how Timber generates the stacktrace location for itself normally.
  *
@@ -355,13 +359,30 @@ private fun createCustomStackElementTag(fallbackTag: String?): String {
     // because Robolectric runs them on the JVM but on Android the elements are different.
     val stackTrace = Throwable().stackTrace
     // ------------------------------------
+
+    // StackTagTest covers this search with unit tests. There is deliberately no extra check on
+    // Debug builds any more: a logging call must never throw (#144).
+    //
+    // NOTE: If tags start pointing at the wrong location, then it's possible a library has been
+    // updated which may have added a new frame to the call stack at this point (for example, a
+    // class outside the skipped packages), and as such loggingFramePrefixes may need to be updated.
+    // Place a debug break here, check the stackTrace array and find which frame sits between the
+    // Steamclog/Timber frames and the actual logging call. Its package will most likely be the new
+    // prefix to add.
     val element = findCallerFrame(stackTrace) ?: return fallbackTag ?: "steamclog"
     return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
 }
 
 /**
- * Class name prefixes of the frames that sit between the logging call site and a Destination.
+ * Which frames we need to skip in the call stack to get to the method that called our
+ * steamclog logging method (or called Timber directly): the class name prefixes of every frame
+ * that sits between the logging call site and a Destination.
  * The trailing dot keeps the sample app (com.steamclock.steamclogsample) from matching.
+ *
+ * NOTE: These prefixes may need to change when libraries are updated, as those updates may affect
+ * the state of the stack trace and how the stack is handled. They also rely on the SteamcLog and
+ * Timber class names surviving minification: if proguard/R8 renames them, the frames are no longer
+ * skipped and the tag points at a library frame.
  */
 private val loggingFramePrefixes = listOf("com.steamclock.steamclog.", "timber.log.")
 

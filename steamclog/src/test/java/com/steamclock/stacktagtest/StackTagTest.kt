@@ -7,6 +7,7 @@ import com.steamclock.steamclog.findCallerFrame
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 import timber.log.Timber
@@ -84,6 +85,15 @@ class StackTagTest {
         Timber.e(IllegalStateException("boom"))
 
         assertEquals("boom", tree.wrapper?.originalMessage)
+    }
+
+    @Test
+    fun steamclogWrapper_isPassedThroughUnchanged() {
+        val wrapper = SteamclogThrowableWrapper("Failed to load", IllegalStateException("boom"), false, null, null)
+
+        Timber.e(wrapper)
+
+        assertSame(wrapper, tree.wrapper)
     }
 
     private fun frame(className: String) = StackTraceElement(className, "method", "File.kt", 1)

@@ -63,11 +63,14 @@ object SteamcLog {
     //
     // Problems with wrapping Timber calls:
     // - Timber trace element containing line number and method points to THIS (Steamclog) file.
+    //   The Destinations work around this by searching the call stack for the first frame outside
+    //   SteamcLog and Timber (see createCustomStackElementTag in Destinations.kt).
     //
-    // Note, using default parameter values (obj: Any? = null) appears to introduce one more call in the
-    // call stack that messes up how we are generating our PriorityEnabledDebugTree's stack element.
-    // To get around this for now we explicit versions of each <level> method below without optional
-    // parameters.
+    // Note, using default parameter values (obj: Any? = null) introduces one more call in the
+    // call stack. This used to break the fixed-depth stack lookup; the frame search (#144) skips
+    // any extra SteamcLog frames, so it no longer matters for the tag. The explicit versions of
+    // each <level> method below without optional parameters are kept as they are, since they are
+    // public API.
     //---------------------------------------------
     fun verbose(@NonNls message: String)                = logTimber(LogLevel.Verbose, message, null, null, null)
     fun verbose(@NonNls message: String, obj: Any)      = logTimber(LogLevel.Verbose, message, null, obj, null)
@@ -168,8 +171,11 @@ object SteamcLog {
 
     /**
      * Allows the Steamclog library to log info messages.
-     * Due to stacktrace manipultions being done in the Destinations, we should not call
-     * the info/debug/verbose calls directly.
+     * The Destinations tag each log with the first stack frame outside SteamcLog and Timber, so a
+     * log made here is tagged with the app code that called into SteamcLog (for example, the
+     * initWith call site), not with this file. Because of that search, calling the
+     * info/debug/verbose methods directly from inside the library no longer breaks the tag
+     * either (#144).
      */
     private fun logInternal(priority: LogLevel, message: String) {
         logTimber(priority, message, null, null, null)
