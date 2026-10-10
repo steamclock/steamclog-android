@@ -25,5 +25,21 @@ data class SteamclogThrowableWrapper(
                     extraInfo = null
                 )
         }
+
+        /**
+         * Like [from], but keeps the caller's message for a direct Timber call such as
+         * `Timber.e(e, "Failed to load")` (#144). Timber passes the tree that message with the
+         * throwable's stack trace appended; this strips the stack trace back off. When the caller
+         * gave no message (`Timber.e(e)`), Timber passes only the stack trace, and the throwable's
+         * own message is used, as [from] does.
+         */
+        internal fun from(throwable: Throwable?, timberMessage: String): SteamclogThrowableWrapper? {
+            if (throwable == null || throwable is SteamclogThrowableWrapper) {
+                return from(throwable)
+            }
+            val stackTraceSuffix = "\n" + throwable.stackTraceToString()
+            if (!timberMessage.endsWith(stackTraceSuffix)) return from(throwable)
+            return from(throwable)?.copy(originalMessage = timberMessage.removeSuffix(stackTraceSuffix))
+        }
     }
 }
