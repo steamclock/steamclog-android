@@ -39,7 +39,7 @@ internal class SentryDestination : Timber.Tree() {
      * From Sentry docs: By default, the last 100 breadcrumbs are kept and attached to next event.
      */
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = SteamclogThrowableWrapper.from(throwable)
+        val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalMessage = wrapper?.originalMessage ?: message
         val originalThrowable = wrapper?.originalThrowable
 
@@ -125,7 +125,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = SteamclogThrowableWrapper.from(throwable)
+        val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalThrowable = wrapper?.originalThrowable
         val fullMessage = generateSimpleLogMessage(
             priority,
@@ -135,7 +135,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
 
         // Since we are relying on android.util.log formatting here,
         // do not call generateFormattedLogMessage
-        super.log(priority, createCustomStackElementTag(), fullMessage, originalThrowable)
+        super.log(priority, createCustomStackElementTag(tag), fullMessage, originalThrowable)
     }
 }
 /**
@@ -164,12 +164,12 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     // Allows us to print out to an external file if desired.
     //---------------------------------------------
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
-        val wrapper = SteamclogThrowableWrapper.from(throwable)
+        val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalThrowable = wrapper?.originalThrowable
 
         val fullMessage = generateFullLogMessage(
             priority,
-            createCustomStackElementTag(),
+            createCustomStackElementTag(tag),
             includeTimestamp = true,
             includeEmoji = false,
             throwable,
@@ -334,59 +334,45 @@ internal fun Timber.Tree.isLoggable(treeLevel: LogLevel, logPriority: Int): Bool
 }
 
 /**
- * IMPORTANT: Must be called from a Destination's "override fun log" method for the
- * modified stacktrace to be calculated correctly.
+ * Builds the "(FileName.kt:line):method" tag for the code that made the logging call.
  *
  * This method helps us get around that fact that because we are wrapping Timber calls, the
  * stacktrace information associated with the location of the report is relative to the Steamclog
  * codebase, and not the location where actual sclog method was invoked.
  *
  * Since Timber's createStackElementTag is made unusable since getTag is final (and gives
- * us the incorrect stacktrace location), this method attempts to generate the desired stacktrace
- * by creating a dummy Throwable and returning a modified version of its stacktrace relative to
- * the number of items in the stack due to Steamclog functionality.
+ * us the incorrect stacktrace location), this method creates a dummy Throwable and searches its
+ * stacktrace for the first frame outside SteamcLog and Timber. This works the same for calls made
+ * through SteamcLog and for direct Timber calls (#144).
  *
  * This is based on how Timber generates the stacktrace location for itself normally.
+ *
+ * Never throws: if no caller frame is found, [fallbackTag] (the tag Timber computed) is used.
  */
-private fun createCustomStackElementTag(): String {
-    /**
-     * How many items we need to "go back" in the call stack to get to method that called our
-     * steamclog logging method.
-     *
-     * NOTE: This number may change when libraries are updated, as those updates may affect the
-     * state of the stack trace and how the stack is handled.
-     */
-    val SC_CALL_STACK_INDEX = 8
-
+private fun createCustomStackElementTag(fallbackTag: String?): String {
     // ---- Taken directly from Timber ----
     // DO NOT switch this to Thread.getCurrentThread().getStackTrace(). The test will pass
     // because Robolectric runs them on the JVM but on Android the elements are different.
     val stackTrace = Throwable().stackTrace
-    check(stackTrace.size > SC_CALL_STACK_INDEX) { "Synthetic stacktrace didn't have enough elements: are you using proguard?" }
     // ------------------------------------
-    val element = stackTrace[SC_CALL_STACK_INDEX]
-    val beforeCutoff = stackTrace[SC_CALL_STACK_INDEX - 1]
-    val steamclogFileName = "Steamclog.kt"
-    val internalLog = element.fileName == steamclogFileName
-            && beforeCutoff.methodName == "logInternal"
-
-    // Since unit testing is hard to do currently, add one more test on Debug builds that
-    // attempts to determine if the stack index is pointing to the correct location.
-    //
-    // NOTE: If these checks are failing then it's possible a library has been updated which may
-    // have affected the depth of the call stack at this point, and as such the SC_CALL_STACK_INDEX
-    // may need to be updated. Place a debug break here, check the stackTrace array and find which
-    // index the actual logging call was made. This will most likely be the new
-    // SC_CALL_STACK_INDEX value.
-    if (SteamcLog.config.isDebug && !internalLog) {
-        check(beforeCutoff.fileName == steamclogFileName)
-            { "createCustomStackElementTag failed: Element before cutoff no longer correct" }
-        check(element.fileName != steamclogFileName) {
-            { "createCustomStackElementTag failed: Element after cutoff no longer correct" }
-        }
-    }
-
+    val element = findCallerFrame(stackTrace) ?: return fallbackTag ?: "steamclog"
     return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
+}
+
+/**
+ * Class name prefixes of the frames that sit between the logging call site and a Destination.
+ * The trailing dot keeps the sample app (com.steamclock.steamclogsample) from matching.
+ */
+private val loggingFramePrefixes = listOf("com.steamclock.steamclog.", "timber.log.")
+
+/**
+ * Returns the first frame in [stackTrace] that does not belong to SteamcLog or Timber, or null if
+ * there is none.
+ */
+internal fun findCallerFrame(stackTrace: Array<StackTraceElement>): StackTraceElement? {
+    return stackTrace.firstOrNull { frame ->
+        loggingFramePrefixes.none { prefix -> frame.className.startsWith(prefix) }
+    }
 }
 
 /**
@@ -401,7 +387,7 @@ private fun generateSimpleLogMessage(priority: Int,
     val emoji = LogLevel.getLogLevel(priority)?.emoji
     val emojiStr = if (includeEmoji && emoji != null) { "$emoji " } else { "" }
 
-    val wrapper = SteamclogThrowableWrapper.from(throwable)
+    val wrapper = SteamclogThrowableWrapper.from(throwable, defaultMessage)
     val extraData = wrapper?.redactedObjectData?.let { ": $it" } ?: run { "" }
     val originalMessage = wrapper?.originalMessage ?: defaultMessage
     return "$emojiStr$originalMessage$extraData"
