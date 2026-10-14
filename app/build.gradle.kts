@@ -57,5 +57,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.material)
+    // Timber is an implementation dependency of steamclog, so the sample declares it itself to
+    // demo direct Timber calls, as a consumer app would.
+    implementation(libs.timber)
     testImplementation(libs.junit)
 }
