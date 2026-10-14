@@ -13,6 +13,7 @@ import com.steamclock.steamclogsample.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         binding.demoText.text = clog.toString()
         binding.logThings.setOnClickListener { testLogging() }
         binding.dumpFileButton.setOnClickListener { testLogDump() }
+        binding.directTimber.setOnClickListener { testDirectTimber() }
         binding.allNonFatals.setOnClickListener { testAllNonFatals() }
         binding.singleNonFatal.setOnClickListener{ testSingleNonFatal() }
         binding.userReport.setOnClickListener { testUserReport() }
@@ -142,6 +144,25 @@ class MainActivity : AppCompatActivity() {
     private fun testWarn() {
         clog.warn("Warn message")
         clog.warn("Warn message with data", RedactableParent())
+    }
+
+    // Calls Timber directly, bypassing clog. These used to crash Debug builds (#144); the tags
+    // should now point at this file, and the error with a message should keep that message.
+    private fun testDirectTimber() {
+        Timber.d("Direct Timber debug message")
+        Timber.w("Direct Timber warning")
+        testDirectTimberErrorWithMessage()
+        testDirectTimberErrorWithoutMessage()
+        Toast.makeText(applicationContext, "Logged via Timber directly. Check your console or show the dump the log.", Toast.LENGTH_LONG).show()
+    }
+
+    // Separate methods so Sentry does not group the two errors together (see testAllNonFatals).
+    private fun testDirectTimberErrorWithMessage() {
+        Timber.e(IllegalStateException("Exception message, should be replaced by the Timber message"), "Direct Timber error with message")
+    }
+
+    private fun testDirectTimberErrorWithoutMessage() {
+        Timber.e(IllegalStateException("Exception message, used since Timber was given no message"))
     }
 
     private fun testBlockedException() {

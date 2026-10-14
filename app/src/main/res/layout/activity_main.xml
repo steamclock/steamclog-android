@@ -104,6 +104,15 @@
                 android:text="SHOW FILE DUMP"
                 android:layout_gravity="center"/>
 
+            <Button
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:id="@+id/direct_timber"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Direct Timber logs"
+                android:layout_gravity="center"/>
+
         </LinearLayout>
 
         <LinearLayout
