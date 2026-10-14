@@ -4,6 +4,9 @@
 agp = "8.13.2"
 compileSdk = "35"
 kotlin = "2.4.0"
+# #137: AGP 8.13.2 bundles an R8 that can't read Kotlin 2.4 metadata. Kotlin 2.4 needs R8 9.1.29+.
+# Remove this override (and the buildscript classpath entry) when AGP is bumped to 9.x.
+r8 = "9.5.26"
 sentry = "8.43.1"
 sentry-plugin = "6.10.0"
 timber = "5.0.1"
@@ -14,6 +17,7 @@ constraintlayout = "2.2.1"
 material = "1.14.0"
 
 [libraries]
+r8 = { module = "com.android.tools:r8", version.ref = "r8" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
