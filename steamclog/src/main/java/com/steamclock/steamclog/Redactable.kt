@@ -24,8 +24,8 @@ fun <T : Any> T.getRedactedDescription(): String = runCatching {
 }.getOrElse { describeFailure(this, it) }
 
 internal fun Any.getRedactedDescription(redactedRequired: Boolean): String = when {
-    // A leaf value logged directly cannot implement Redactable, so redactedRequired alone decides
-    // whether its value is shown, the same rule a leaf property of a non-Redactable class follows.
+    // A leaf value is never Redactable (see isLeafValue), so redactedRequired alone decides whether
+    // its value is shown, the same rule a leaf property of a non-Redactable class follows.
     isLeafValue() -> if (redactedRequired) "<redacted>" else toString()
     else -> describe(this, redactedRequired, Collections.newSetFromMap(IdentityHashMap()))
 }
@@ -53,8 +53,11 @@ private fun describe(obj: Any, redactedRequired: Boolean, visited: MutableSet<An
                     val value = property.get(obj)
                     // Don't recursively call getRedactedDescription on primitives/Strings and other leaf values.
                     // If not dealing with a leaf value, then we may need to recurse down to get full description.
-                    val description = if (value == null || value.isLeafValue()) {
-                        value.toString()
+                    val description = if (value == null) {
+                        "null"
+                    } else if (value.isLeafValue()) {
+                        // A throwing toString() replaces only this value, so sibling properties still print.
+                        runCatching { value.toString() }.getOrElse { describeFailure(value, it) }
                     } else {
                         describe(value, redactedRequired, visited)
                     }
@@ -71,10 +74,11 @@ private fun describe(obj: Any, redactedRequired: Boolean, visited: MutableSet<An
 /**
  * Values printed with toString() rather than described property by property. Their declared Kotlin
  * properties do not hold their value (boxed primitives and enums have none), so recursing prints
- * `Integer()` or `Kind()`.
+ * `Integer()` or `Kind()`. A Redactable value (for example an enum with properties) is never a leaf,
+ * so its safeProperties still decide what is shown.
  */
-private fun Any.isLeafValue(): Boolean =
-    this is Number || this is Boolean || this is Char || this is CharSequence || this is Enum<*>
+private fun Any.isLeafValue(): Boolean = this !is Redactable &&
+    (this is Number || this is Boolean || this is Char || this is CharSequence || this is Enum<*>)
 
 private fun describeFailure(obj: Any, error: Throwable): String {
     // Reflection wraps an exception thrown by a getter; name the getter's exception instead.

@@ -27,6 +27,25 @@ class RedactableTest {
         override val safeProperties = setOf("name")
     }
 
+    enum class Plan(val token: String) : Redactable {
+        PREMIUM("secret-token");
+
+        override val safeProperties: Set<String> get() = emptySet()
+        override fun toString() = "Plan($token)"
+    }
+
+    data class Account(val plan: Plan) : Redactable {
+        override val safeProperties = setOf("plan")
+    }
+
+    enum class BadEnum {
+        X;
+
+        override fun toString(): String = throw IllegalStateException("toString failed")
+    }
+
+    data class WithBadLeaf(val bad: BadEnum, val name: String)
+
     @Test
     fun selfReferenceTerminatesWithPlaceholder() {
         val a = Node("a").also { it.next = it }
@@ -82,6 +101,25 @@ class RedactableTest {
         assertEquals(
             "User(email=<redacted>, name=shayla)",
             User("shayla", "me@email.com").getRedactedDescription(false)
+        )
+    }
+
+    @Test
+    fun redactableEnumAppliesItsSafeProperties() {
+        assertEquals("Plan(token=<redacted>)", Plan.PREMIUM.getRedactedDescription(false))
+        assertEquals("Plan(token=<redacted>)", Plan.PREMIUM.getRedactedDescription(true))
+    }
+
+    @Test
+    fun redactableEnumInsideAllowedPropertyAppliesItsSafeProperties() {
+        assertEquals("Account(plan=Plan(token=<redacted>))", Account(Plan.PREMIUM).getRedactedDescription(true))
+    }
+
+    @Test
+    fun throwingLeafToStringKeepsSiblingProperties() {
+        assertEquals(
+            "WithBadLeaf(bad=BadEnum(<description failed: IllegalStateException>), name=n)",
+            WithBadLeaf(BadEnum.X, "n").getRedactedDescription(false)
         )
     }
 
