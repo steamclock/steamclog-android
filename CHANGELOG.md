@@ -13,6 +13,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed Sentry 8.x API compatibility: clearUserId() and SentryEvent extras
 - Modernized Gradle build structure: added version catalog, plugins block, centralized repository declarations, migrated to Kotlin DSL
 - Fixed API 23 compatibility: replaced Java forEach calls with for loops in file management methods
+- Fixed direct Timber calls crashing debug builds; the log tag now names the real caller, and `Timber.e(e, "msg")` keeps its message (#144)
 
 ---
 
