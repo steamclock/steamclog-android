@@ -83,6 +83,8 @@ internal class SentryDestination : Timber.Tree() {
             val hintWithAttachments = when (wrapper?.attachLogFiles) {
                 true -> {
                     val attachments = mutableListOf<Attachment>()
+                    // #147: Expire old files first so a report never attaches them.
+                    SteamcLog.removeOldLogFiles()
                     // Sort by descending modified time so that we get the "latest" log files
                     val logFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
                         ?.take(attachNumLogFiles) ?: emptyList()
@@ -269,20 +271,15 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
     }
 
-    private fun removeOldLogFiles() {
-        val deleteThese = mutableListOf<File>()
-        val now = System.currentTimeMillis()
-        val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
-
-        for (file in getExternalLogDirectory()?.listFiles() ?: emptyArray()) {
-            if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
-        }
-
-        for (file in deleteThese) {
-            if (!file.delete()) {
-                logToConsole("Failed to delete log file ${file.name}")
-            }
-        }
+    /**
+     * Deletes log files last modified more than [Config.keepLogsForDays] ago.
+     */
+    internal fun removeOldLogFiles() {
+        removeLogFilesOlderThan(
+            getExternalLogDirectory(),
+            SteamcLog.config.keepLogsForDays,
+            System.currentTimeMillis()
+        )
     }
 
     /**
@@ -326,6 +323,25 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 //-----------------------------------------------------------------------------
 // Extensions / Helpers
 //-----------------------------------------------------------------------------
+/**
+ * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now].
+ */
+internal fun removeLogFilesOlderThan(directory: File?, keepLogsForDays: Int, now: Long) {
+    val deleteThese = mutableListOf<File>()
+    // #147: Long arithmetic; as an Int, 25 days or more overflows and every file is deleted.
+    val expiryMs = keepLogsForDays * 86_400_000L // (86400000 ms per day)
+
+    for (file in directory?.listFiles() ?: emptyArray()) {
+        if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
+    }
+
+    for (file in deleteThese) {
+        if (!file.delete()) {
+            logToConsole("Failed to delete log file ${file.name}")
+        }
+    }
+}
+
 /**
  * Determines if the log (at given android.util.Log priority) should be logged given the
  * current tree logging level.

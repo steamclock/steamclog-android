@@ -19,6 +19,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Narrowed the consumer R8 rules (#145): removed `-keep public class *`, which stopped R8 from renaming most public classes in every consuming app and its dependencies. **Consumer build output changes:** release builds obfuscate and shrink more (the sample app's APK drops from 8.0 MB to 6.4 MB). The library now keeps only Timber's class names and the types of `Redactable` properties, which redaction and the log tag need.
 - **Breaking:** `clog.fatal(...)` now matches the README (#142). It captures a Sentry event at `FATAL` level (with the same `FilterOut` check and extra info as errors; before, it only added a breadcrumb), flushes Sentry, then kills the app's process. It returns `Nothing` instead of `Unit`, so code after a `fatal` call is unreachable. Apps that used `fatal` as a severe log and kept running must switch those calls to `clog.error`.
 - Fixed the console (Logcat) output dropping the throwable passed to `clog.error`, `clog.fatal` or a direct Timber call; its stack trace now prints after the message (#148)
+- Fixed `keepLogsForDays` of 25 or more deleting every log file, including the one being written (#147). Old log files are now also deleted at `initWith` and before log files are attached to a user report, not only when `getFullLogContents()` is called.
 
 ---
 

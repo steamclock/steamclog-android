@@ -58,6 +58,7 @@ object SteamcLog {
         this.config = config
         this.config.fileWritePath?.let {
             updateTree(externalLogFileTree, true)
+            externalLogFileTree.removeOldLogFiles()
         } ?: run {
             logInternal(LogLevel.Warn, "fileWritePath given was null; cannot log to external file")
         }
@@ -173,6 +174,14 @@ object SteamcLog {
      */
     fun getAllLogFiles(logSort: LogSort): List<File>? {
         return externalLogFileTree.getLogFiles(logSort)
+    }
+
+    /**
+     * Deletes log files older than [Config.keepLogsForDays]. Does nothing without a fileWritePath.
+     */
+    internal fun removeOldLogFiles() {
+        if (config.fileWritePath == null) return
+        externalLogFileTree.removeOldLogFiles()
     }
 
     fun addCustomTree(tree: Timber.Tree) {
