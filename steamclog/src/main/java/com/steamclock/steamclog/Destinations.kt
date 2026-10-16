@@ -132,11 +132,7 @@ internal class ConsoleDestination: Timber.DebugTree() {
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
         val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalThrowable = wrapper?.originalThrowable
-        val fullMessage = generateSimpleLogMessage(
-            priority,
-            includeEmoji = true,
-            throwable,
-            message)
+        val fullMessage = generateConsoleLogMessage(priority, throwable, message)
 
         // Since we are relying on android.util.log formatting here,
         // do not call generateFormattedLogMessage
@@ -417,6 +413,23 @@ private fun generateSimpleLogMessage(priority: Int,
     val extraData = wrapper?.redactedObjectData?.let { ": $it" } ?: run { "" }
     val originalMessage = wrapper?.originalMessage ?: defaultMessage
     return "$emojiStr$originalMessage$extraData"
+}
+
+/**
+ * Returns based on given parameters:
+ * - [emoji][Message][: Extra data]
+ * - [Stack trace of the original throwable, if any]
+ *
+ * Timber.DebugTree ignores the throwable passed to its log method, so the stack trace must be part
+ * of the message to reach Logcat (#148).
+ */
+internal fun generateConsoleLogMessage(priority: Int,
+                                       throwable: Throwable?,
+                                       defaultMessage: String): String {
+    val simpleMessage = generateSimpleLogMessage(priority, includeEmoji = true, throwable, defaultMessage)
+    val originalThrowable = SteamclogThrowableWrapper.from(throwable, defaultMessage)?.originalThrowable
+        ?: return simpleMessage
+    return "$simpleMessage\n${originalThrowable.stackTraceToString()}"
 }
 
 /**
