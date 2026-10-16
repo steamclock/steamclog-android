@@ -2,11 +2,13 @@
 
 package com.steamclock.steamclog
 
+import android.os.Process
 import io.sentry.Sentry
 import io.sentry.protocol.User
 import org.jetbrains.annotations.NonNls
 import timber.log.Timber
 import java.io.File
+import kotlin.system.exitProcess
 
 /**
  * Steamclog
@@ -23,6 +25,10 @@ object SteamcLog {
     //---------------------------------------------
     // Privates
     //---------------------------------------------
+    // Below the 5 second ANR threshold, since fatal may be called on the main thread.
+    private const val FATAL_FLUSH_TIMEOUT_MS = 2000L
+    private const val FATAL_EXIT_CODE = 10
+
     @Suppress("JoinDeclarationAndAssignment")
     private var customDebugTree: ConsoleDestination
     private var sentryTree: SentryDestination
@@ -87,8 +93,21 @@ object SteamcLog {
     fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.Error)
     fun error(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj, ExtraInfoPurpose.Error)
 
-    fun fatal(@NonNls message: String)                  = logTimber(LogLevel.Fatal, message, null, null, ExtraInfoPurpose.Fatal)
-    fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Fatal, message, throwable, obj, ExtraInfoPurpose.Fatal)
+    /**
+     * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
+     */
+    fun fatal(@NonNls message: String): Nothing {
+        logTimber(LogLevel.Fatal, message, null, null, ExtraInfoPurpose.Fatal)
+        closeApp()
+    }
+
+    /**
+     * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
+     */
+    fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?): Nothing {
+        logTimber(LogLevel.Fatal, message, throwable, obj, ExtraInfoPurpose.Fatal)
+        closeApp()
+    }
 
     fun userReport(@NonNls message: String)             = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.UserReport)
     fun userReport(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj, ExtraInfoPurpose.UserReport)
@@ -179,6 +198,18 @@ object SteamcLog {
      */
     private fun logInternal(priority: LogLevel, message: String) {
         logTimber(priority, message, null, null, null)
+    }
+
+    /**
+     * Ends the process after a fatal log (#142). Kills the process instead of throwing, so that
+     * Sentry does not also capture the crash as a second event, and so a caller cannot catch it.
+     * Sentry is flushed first so the fatal event is sent before the process ends.
+     */
+    private fun closeApp(): Nothing {
+        Sentry.flush(FATAL_FLUSH_TIMEOUT_MS)
+        Process.killProcess(Process.myPid())
+        // killProcess does not return in practice; exitProcess gives the compiler its Nothing.
+        exitProcess(FATAL_EXIT_CODE)
     }
 
     /**

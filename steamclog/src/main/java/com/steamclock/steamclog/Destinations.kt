@@ -47,8 +47,9 @@ internal class SentryDestination : Timber.Tree() {
         val verboseLogMessage = generateSimpleLogMessage(priority, includeEmoji = false, wrapper, originalMessage)
         Sentry.addBreadcrumb(createSentryBreadcrumbFor(priority, verboseLogMessage))
 
-        // Log error report if desired.
-        if (priority == Log.ERROR) {
+        // Log error report if desired. Fatal logs get a report too (#142).
+        val eventLevel = sentryEventLevelFor(priority)
+        if (eventLevel != null) {
             if (originalThrowable != null) {
                 // Check to see if we want to block this Throwable from being logged as an Error.
                 if (SteamcLog.config.filtering.shouldBlock(originalThrowable)) {
@@ -66,7 +67,7 @@ internal class SentryDestination : Timber.Tree() {
             // Always use the message as our error report, as this gives us way more contextual
             // info about the problem than the name of the Exception.
             val sentryEvent = SentryEvent(originalThrowable).apply {
-                level = SentryLevel.ERROR
+                level = eventLevel
                 setMessage(Message().apply {
                     setMessage(originalMessage)
                     formatted = originalMessage
@@ -325,6 +326,18 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 //-----------------------------------------------------------------------------
 // Extensions / Helpers
 //-----------------------------------------------------------------------------
+/**
+ * Returns the level of the Sentry event to capture for a log at the given android.util.Log
+ * priority, or null if the log should only be a breadcrumb.
+ */
+internal fun sentryEventLevelFor(priority: Int): SentryLevel? {
+    return when (priority) {
+        Log.ERROR -> SentryLevel.ERROR
+        Log.ASSERT -> SentryLevel.FATAL
+        else -> null
+    }
+}
+
 /**
  * Determines if the log (at given android.util.Log priority) should be logged given the
  * current tree logging level.
