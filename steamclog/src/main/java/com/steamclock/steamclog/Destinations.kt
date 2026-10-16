@@ -83,6 +83,8 @@ internal class SentryDestination : Timber.Tree() {
             val hintWithAttachments = when (wrapper?.attachLogFiles) {
                 true -> {
                     val attachments = mutableListOf<Attachment>()
+                    // #147: Expire old files first so a report never attaches them.
+                    SteamcLog.removeOldLogFiles()
                     // Sort by descending modified time so that we get the "latest" log files
                     val logFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
                         ?.take(attachNumLogFiles) ?: emptyList()
@@ -269,12 +271,21 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         }
     }
 
-    private fun removeOldLogFiles() {
+    /**
+     * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now].
+     * The defaults are the log directory, [Config.keepLogsForDays] and the current time; tests
+     * pass their own.
+     */
+    internal fun removeOldLogFiles(
+        directory: File? = getExternalLogDirectory(),
+        keepLogsForDays: Int = SteamcLog.config.keepLogsForDays,
+        now: Long = System.currentTimeMillis()
+    ) {
         val deleteThese = mutableListOf<File>()
-        val now = System.currentTimeMillis()
-        val expiryMs = SteamcLog.config.keepLogsForDays * 86400000 // (86400000 ms per day)
+        // #147: Long arithmetic; as an Int, 25 days or more overflows and every file is deleted.
+        val expiryMs = keepLogsForDays * 86_400_000L // (86400000 ms per day)
 
-        for (file in getExternalLogDirectory()?.listFiles() ?: emptyArray()) {
+        for (file in directory?.listFiles() ?: emptyArray()) {
             if (file.lastModified() < (now - expiryMs)) deleteThese.add(file)
         }
 
