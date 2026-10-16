@@ -7,7 +7,8 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 /**
- * Checks which log files removeLogFilesOlderThan deletes (#147).
+ * Checks which log files ExternalLogFileDestination.removeOldLogFiles deletes (#147). Each test
+ * passes the directory, day count and time, so SteamcLog.config is never read.
  */
 class LogFileExpiryTest {
 
@@ -21,6 +22,10 @@ class LogFileExpiryTest {
         return folder.newFile(name).apply { setLastModified(now - ageDays * dayMs) }
     }
 
+    private fun removeOldLogFiles(keepLogsForDays: Int) {
+        ExternalLogFileDestination().removeOldLogFiles(folder.root, keepLogsForDays, now)
+    }
+
     private fun remainingFiles(): Set<String> = folder.root.list()!!.toSet()
 
     @Test
@@ -29,7 +34,7 @@ class LogFileExpiryTest {
         logFile("recent.txt", ageDays = 2)
         logFile("old.txt", ageDays = 4)
 
-        removeLogFilesOlderThan(folder.root, keepLogsForDays = 3, now)
+        removeOldLogFiles(keepLogsForDays = 3)
 
         assertEquals(setOf("current.txt", "recent.txt"), remainingFiles())
     }
@@ -41,7 +46,7 @@ class LogFileExpiryTest {
         logFile("recent.txt", ageDays = 24)
         logFile("old.txt", ageDays = 26)
 
-        removeLogFilesOlderThan(folder.root, keepLogsForDays = 25, now)
+        removeOldLogFiles(keepLogsForDays = 25)
 
         assertEquals(setOf("current.txt", "recent.txt"), remainingFiles())
     }
@@ -51,7 +56,7 @@ class LogFileExpiryTest {
         logFile("current.txt", ageDays = 0)
         logFile("old.txt", ageDays = 365)
 
-        removeLogFilesOlderThan(folder.root, keepLogsForDays = 3650, now)
+        removeOldLogFiles(keepLogsForDays = 3650)
 
         assertEquals(setOf("current.txt", "old.txt"), remainingFiles())
     }
@@ -61,7 +66,7 @@ class LogFileExpiryTest {
         logFile("current.txt", ageDays = 0)
         logFile("old.txt", ageDays = 365)
 
-        removeLogFilesOlderThan(folder.root, keepLogsForDays = Int.MAX_VALUE, now)
+        removeOldLogFiles(keepLogsForDays = Int.MAX_VALUE)
 
         assertEquals(setOf("current.txt", "old.txt"), remainingFiles())
     }
