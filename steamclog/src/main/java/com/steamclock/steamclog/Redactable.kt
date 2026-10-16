@@ -91,9 +91,8 @@ private fun describeFailure(obj: Any, error: Throwable): String {
  *
  * Created by shayla on 2020-01-23
  *
- * If application using Proguard or R8 to do code obfuscation then the following must be added to the
- * proguard-rules.pro file to enable the redaction to correctly work with the safeProperties set:
- *   -keep class * extends com.steamclock.steamclog.Redactable { *; }
+ * Apps that use Proguard or R8 need no rules of their own for redaction: SteamcLog's consumer rules
+ * (steamclog/consumer-rules.pro) keep every Redactable class and the types of its properties (#145).
  */
 
 interface Redactable {
