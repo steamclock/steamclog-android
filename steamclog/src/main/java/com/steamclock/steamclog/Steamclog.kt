@@ -96,17 +96,19 @@ object SteamcLog {
     /**
      * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
      */
-    fun fatal(@NonNls message: String): Nothing {
-        logTimber(LogLevel.Fatal, message, null, null, ExtraInfoPurpose.Fatal)
-        closeApp()
-    }
+    fun fatal(@NonNls message: String): Nothing = fatal(message, null, null)
 
     /**
      * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
      */
     fun fatal(@NonNls message: String, throwable: Throwable?, obj: Any?): Nothing {
-        logTimber(LogLevel.Fatal, message, throwable, obj, ExtraInfoPurpose.Fatal)
-        closeApp()
+        // #142: close in finally so an exception from an app callback (extraInfo, FilterOut)
+        // cannot reach a caller that catches it and keeps running.
+        try {
+            logTimber(LogLevel.Fatal, message, throwable, obj, ExtraInfoPurpose.Fatal)
+        } finally {
+            closeApp()
+        }
     }
 
     fun userReport(@NonNls message: String)             = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.UserReport)
