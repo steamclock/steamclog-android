@@ -295,13 +295,20 @@ class MainActivity : AppCompatActivity() {
 
     // Types the consumer R8 rules do not keep directly (#145): a list element type, a class nested
     // inside a non-Redactable class, and an enum. In a release build their names should still print.
+    // The computed and lazy properties have no field of their type, so only the getter rule keeps it.
     class RedactableEdgeCases : Any(), Redactable {
         val items = listOf(ListItem())
         val nested = NestedParent()
         val kind = Kind.First
+        val computed: ComputedChild get() = ComputedChild()
+        val lazyChild by lazy { LazyChild() }
 
-        override val safeProperties: Set<String> = HashSet<String>(setOf("items", "nested", "kind"))
+        override val safeProperties: Set<String> = HashSet<String>(setOf("items", "nested", "kind", "computed", "lazyChild"))
     }
+
+    class ComputedChild : Any()
+
+    class LazyChild : Any()
 
     class ListItem : Any() {
         val label = "item"
