@@ -54,6 +54,12 @@ android {
         }
     }
     namespace = "com.steamclock.steamclog"
+
+    testOptions {
+        // #168: ExternalLogFileDestination calls android.os.Process.myPid() for each line, and
+        // the android.jar stubs throw in JVM unit tests unless they return defaults.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

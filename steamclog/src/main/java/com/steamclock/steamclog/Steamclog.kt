@@ -229,7 +229,9 @@ object SteamcLog {
     private fun updateTree(tree: Timber.Tree, enabled: Boolean) {
         try {
             if (enabled) {
-                Timber.plant(tree)
+                // #168: Timber.plant does not skip a tree that is already planted, so a second
+                // initWith call would write every log line to the file twice.
+                if (tree !in Timber.forest()) Timber.plant(tree)
             } else {
                 Timber.uproot(tree)
             }
