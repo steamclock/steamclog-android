@@ -139,6 +139,10 @@ class MainActivity : AppCompatActivity() {
     private fun testInfo() {
         clog.info("Info message")
         clog.info("Info message with data", RedactableParent())
+        val edgeCases = RedactableEdgeCases()
+        // Reading nested.child keeps that field in release builds, so redaction inspects NestedChild.
+        clog.info("Nested child is ${edgeCases.nested.child}")
+        clog.info("Info message with R8 edge cases", edgeCases)
     }
 
     private fun testWarn() {
@@ -288,6 +292,30 @@ class MainActivity : AppCompatActivity() {
         val prop1 = "doggo"
         val prop2 = 5
     }
+
+    // Types the consumer R8 rules do not keep directly (#145): a list element type, a class nested
+    // inside a non-Redactable class, and an enum. In a release build their names should still print.
+    class RedactableEdgeCases : Any(), Redactable {
+        val items = listOf(ListItem())
+        val nested = NestedParent()
+        val kind = Kind.First
+
+        override val safeProperties: Set<String> = HashSet<String>(setOf("items", "nested", "kind"))
+    }
+
+    class ListItem : Any() {
+        val label = "item"
+    }
+
+    class NestedParent : Any() {
+        val child = NestedChild()
+    }
+
+    class NestedChild : Any() {
+        val label = "nested"
+    }
+
+    enum class Kind { First, Second }
 
     sealed class AnalyticEvent(val id: String, val data: Map<String, Any>) {
         object TestButtonPressed: AnalyticEvent("test_button_pressed", mapOf())
