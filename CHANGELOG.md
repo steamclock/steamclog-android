@@ -15,6 +15,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed API 23 compatibility: replaced Java forEach calls with for loops in file management methods
 - Fixed direct Timber calls crashing debug builds; the log tag now names the real caller, and `Timber.e(e, "msg")` keeps its message (#144)
 - Fixed logged object descriptions (#146): cyclic objects no longer crash (a repeated object prints as `<visited ClassName>`), boxed primitives, enums and strings print their value instead of `Integer()`/`Kind()`, both as properties and when logged directly (`<redacted>` when `requireRedacted` is set), and a failure while describing an object prints `<description failed: ...>` instead of throwing. Log output changes for affected objects.
+- Pinned R8 to 9.5.26 in the build, so minified builds can read Kotlin 2.4 metadata; AGP 8.13.2's bundled R8 could not (#137). Build-only change, no effect on the published library.
 
 ---
 
