@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         binding.singleNonFatal.setOnClickListener{ testSingleNonFatal() }
         binding.userReport.setOnClickListener { testUserReport() }
         binding.logBlockedException.setOnClickListener { testBlockedException() }
+        binding.fatalCrash.setOnClickListener { testFatalCrash() }
         binding.enableUserReportLogs.setOnCheckedChangeListener { _, checked ->
             clog.config.detailedLogsOnUserReports = checked
         }

@@ -161,7 +161,7 @@ See the [API Docs](https://coda.io/d/SteamcLog-Public-Documentation_dYDBWMQYscM/
 * `clog.info` - Routine app operations, used to document changes in state within the application. Minimum level of log stored in device logs in production.
 * `clog.warn` - Developer concerns or incorrect state etc. Something’s definitely gone wrong, but there’s a path to recover
 * `clog.error` - Something has gone wrong, report to a remote service (like Sentry)
-* `clog.fatal` - Something has gone wrong and we cannot recover, so force the app to close.
+* `clog.fatal` - Something has gone wrong and we cannot recover, so force the app to close. Reports a fatal-level event to a remote service (like Sentry), then closes the app. `clog.fatal` never returns.
 
 #### Basic Signatures
 
@@ -175,7 +175,7 @@ If `requireRedacted` is set to `true`, then the Any object *must* implement the 
 Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log.
 * `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
 
-Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `FilterOut` interface implementation.
+Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `FilterOut` interface implementation. The same applies to a fatal, but the app still closes when its Throwable is blocked.
 
 ### Interfaces
 

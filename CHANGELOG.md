@@ -17,6 +17,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed logged object descriptions (#146): cyclic objects no longer crash (a repeated object prints as `<visited ClassName>`), boxed primitives, enums and strings print their value instead of `Integer()`/`Kind()`, both as properties and when logged directly (`<redacted>` when `requireRedacted` is set), and a failure while describing an object prints `<description failed: ...>` instead of throwing. Log output changes for affected objects.
 - Pinned R8 to 9.5.26 in the build, so minified builds can read Kotlin 2.4 metadata; AGP 8.13.2's bundled R8 could not (#137). Build-only change, no effect on the published library.
 - Narrowed the consumer R8 rules (#145): removed `-keep public class *`, which stopped R8 from renaming most public classes in every consuming app and its dependencies. **Consumer build output changes:** release builds obfuscate and shrink more (the sample app's APK drops from 8.0 MB to 6.4 MB). The library now keeps only Timber's class names and the types of `Redactable` properties, which redaction and the log tag need.
+- **Breaking:** `clog.fatal(...)` now matches the README (#142). It captures a Sentry event at `FATAL` level (with the same `FilterOut` check and extra info as errors; before, it only added a breadcrumb), flushes Sentry, then kills the app's process. It returns `Nothing` instead of `Unit`, so code after a `fatal` call is unreachable. Apps that used `fatal` as a severe log and kept running must switch those calls to `clog.error`.
 
 ---
 
