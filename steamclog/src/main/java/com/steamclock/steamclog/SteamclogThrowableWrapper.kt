@@ -6,7 +6,7 @@ package com.steamclock.steamclog
  *
  * Created by shayla on 2020-09-28
  */
-data class SteamclogThrowableWrapper(
+internal data class SteamclogThrowableWrapper(
     val originalMessage: String,
     val originalThrowable: Throwable?,
     val attachLogFiles: Boolean?,

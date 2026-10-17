@@ -23,6 +23,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed a second `initWith` call writing every log line to the log file twice (#168)
 - Fixed a log call made before `initWith` crashing with `UninitializedPropertyAccessException`; SteamcLog calls and direct Timber calls before `initWith` are now dropped (#169)
 - Added `clog.error(message, throwable)` and `clog.fatal(message, throwable)`, so a throwable can be logged without passing `null` for the object (#170). Fixed the README's `initWith` example and log export method name.
+- **Breaking:** `SteamclogThrowableWrapper` and the `getRedactedDescription()` extension are now `internal`; both were only meant for the library's own use (#171). Removed the unused private `addObjToMessage`. Apps keep marking safe properties with `Redactable`, which is unchanged.
 
 ---
 

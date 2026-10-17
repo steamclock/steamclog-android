@@ -16,7 +16,7 @@ import kotlin.reflect.jvm.isAccessible
  * so cyclic references terminate, and a failure while describing an object (reflection, a
  * throwing getter) is printed in place of that object's description.
  */
-fun <T : Any> T.getRedactedDescription(): String = runCatching {
+internal fun <T : Any> T.getRedactedDescription(): String = runCatching {
     // If a class does not implement Redactable, this boolean allows us to control if we default
     // show or redact the properties of those classes. This enables us to turn on app-wide redaction
     // for all classes.
