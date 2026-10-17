@@ -54,8 +54,8 @@ class SentryDestinationTest {
     @Test
     fun errorWithThrowable_capturesSameEventAsErrorWithNullObject() {
         // Two instances, because Sentry drops a second event for a throwable it has already captured.
-        val twoArgsThrowable = IllegalStateException("boom")
-        val threeArgsThrowable = IllegalStateException("boom")
+        val twoArgsThrowable = IllegalStateException("Throwable logged with error(message, throwable)")
+        val threeArgsThrowable = IllegalStateException("Throwable logged with error(message, throwable, null)")
 
         clog.error("Failed to load", twoArgsThrowable)
         clog.error("Failed to load", threeArgsThrowable, null)
