@@ -40,6 +40,13 @@ object SteamcLog {
     lateinit var config: Config
         private set
 
+    /**
+     * False until [initWith] is called. Every log before that is dropped (#169): without a
+     * [Config] the library cannot choose a log level or redaction setting.
+     */
+    internal val isInitialized: Boolean
+        get() = ::config.isInitialized
+
     init {
         // By default plant all trees; setting their level to LogLevel.None will effectively
         // disable that tree, but we do not uproot it.
@@ -126,6 +133,7 @@ object SteamcLog {
         obj: Any?,
         purpose: ExtraInfoPurpose?
     ) {
+        if (!isInitialized) return
         val extraInfo = purpose?.let { config.extraInfo?.invoke(purpose) }
         val redactableObjectData =  obj?.getRedactedDescription()
         val attachLogFiles = purpose == ExtraInfoPurpose.UserReport && config.detailedLogsOnUserReports

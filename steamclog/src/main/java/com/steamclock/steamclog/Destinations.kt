@@ -32,7 +32,8 @@ internal class SentryDestination : Timber.Tree() {
     }
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.remote, priority)
+        // #169: Timber calls this for direct Timber logs too, so it drops logs made before initWith.
+        return SteamcLog.isInitialized && isLoggable(SteamcLog.config.logLevel.remote, priority)
     }
 
     /**
@@ -128,7 +129,7 @@ internal class SentryDestination : Timber.Tree() {
 internal class ConsoleDestination: Timber.DebugTree() {
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.console, priority)
+        return SteamcLog.isInitialized && isLoggable(SteamcLog.config.logLevel.console, priority)
     }
 
     override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
@@ -160,7 +161,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private var logFileCreatedTimeEstimate: Long? = null
 
     override fun isLoggable(priority: Int): Boolean {
-        return isLoggable(SteamcLog.config.logLevel.disk, priority)
+        return SteamcLog.isInitialized && isLoggable(SteamcLog.config.logLevel.disk, priority)
     }
 
     //---------------------------------------------
