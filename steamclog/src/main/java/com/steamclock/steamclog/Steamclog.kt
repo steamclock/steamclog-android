@@ -99,12 +99,18 @@ object SteamcLog {
     fun warn(@NonNls message: String, obj: Any)         = logTimber(LogLevel.Warn, message, null, obj, null)
 
     fun error(@NonNls message: String)                  = logTimber(LogLevel.Error, message, null, null, ExtraInfoPurpose.Error)
+    fun error(@NonNls message: String, throwable: Throwable?) = logTimber(LogLevel.Error, message, throwable, null, ExtraInfoPurpose.Error)
     fun error(@NonNls message: String, throwable: Throwable?, obj: Any?) = logTimber(LogLevel.Error, message, throwable, obj, ExtraInfoPurpose.Error)
 
     /**
      * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
      */
     fun fatal(@NonNls message: String): Nothing = fatal(message, null, null)
+
+    /**
+     * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.
+     */
+    fun fatal(@NonNls message: String, throwable: Throwable?): Nothing = fatal(message, throwable, null)
 
     /**
      * Logs the message, reports it to Sentry as a fatal event, then closes the app. Never returns.

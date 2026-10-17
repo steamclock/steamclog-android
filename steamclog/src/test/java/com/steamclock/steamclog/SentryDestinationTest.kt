@@ -5,6 +5,7 @@ import io.sentry.SentryEvent
 import io.sentry.SentryLevel
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -48,6 +49,24 @@ class SentryDestinationTest {
 
         assertEquals(listOf(SentryLevel.ERROR), events.map { it.level })
         assertEquals("Failed to load", events.single().message?.formatted)
+    }
+
+    @Test
+    fun errorWithThrowable_capturesSameEventAsErrorWithNullObject() {
+        // Two instances, because Sentry drops a second event for a throwable it has already captured.
+        val twoArgsThrowable = IllegalStateException("boom")
+        val threeArgsThrowable = IllegalStateException("boom")
+
+        clog.error("Failed to load", twoArgsThrowable)
+        clog.error("Failed to load", threeArgsThrowable, null)
+
+        assertEquals(2, events.size)
+        val (twoArgs, threeArgs) = events
+        assertEquals(threeArgs.level, twoArgs.level)
+        assertEquals(threeArgs.message?.formatted, twoArgs.message?.formatted)
+        assertSame(twoArgsThrowable, twoArgs.throwable)
+        assertSame(threeArgsThrowable, threeArgs.throwable)
+        assertEquals(threeArgs.extras, twoArgs.extras)
     }
 
     @Test

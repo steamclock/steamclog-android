@@ -78,7 +78,7 @@ Example:
 class App: Application() {
 ...
    override fun onCreate() {
-      clog.initWith(BuildConfig.DEBUG, externalCacheDir)
+      clog.initWith(Config(isDebug = BuildConfig.DEBUG, fileWritePath = externalCacheDir))
    }      
 ```
 
@@ -172,8 +172,9 @@ Each of these functions has the following 2 available signatures:
 If `requireRedacted` is set to `true`, then the Any object *must* implement the Redactable interface, else all properties will be shown as `<REDACTED>`.
 
 #### Error and Fatal Specific Signatures
-Error and Fatal levels have a special signature that allows a given Throwable to be associated with the log.
-* `clog.<level>(_ message: String, throwable: Throwable,  object: Any)`
+Error and Fatal levels have special signatures that allow a given Throwable to be associated with the log.
+* `clog.<level>(_ message: String, throwable: Throwable?)`
+* `clog.<level>(_ message: String, throwable: Throwable?, object: Any?)`
 
 Please note, an error will only be logged if the Throwable is _not_ in the blocked via the `FilterOut` interface implementation. The same applies to a fatal, but the app still closes when its Throwable is blocked.
 
@@ -225,7 +226,7 @@ class App : Application(), FilterOut {
 
 ### Exporting Disk Logs
 
-If logging to a file has been enabled, then files, you can get the log file contents using `clog.getLogFileContents(): String?`
+If logging to a file has been enabled, then files, you can get the log file contents using `clog.getFullLogContents(): String?`
 
 ### Firebase
 

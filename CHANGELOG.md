@@ -22,6 +22,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed `keepLogsForDays` of 25 or more deleting every log file, including the one being written (#147). Old log files are now also deleted at `initWith` and before log files are attached to a user report, not only when `getFullLogContents()` is called.
 - Fixed a second `initWith` call writing every log line to the log file twice (#168)
 - Fixed a log call made before `initWith` crashing with `UninitializedPropertyAccessException`; SteamcLog calls and direct Timber calls before `initWith` are now dropped (#169)
+- Added `clog.error(message, throwable)` and `clog.fatal(message, throwable)`, so a throwable can be logged without passing `null` for the object (#170). Fixed the README's `initWith` example and log export method name.
 
 ---
 
