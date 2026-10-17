@@ -89,8 +89,8 @@ class SentryDestinationTest {
     fun blockedThrowable_capturesNoEvent() {
         clog.config.filtering = FilterOut { it is IllegalStateException }
 
-        clog.error("Failed to load", IllegalStateException("boom"), null)
-        Timber.wtf(IllegalStateException("boom"), "Cannot recover")
+        clog.error("Failed to load", IllegalStateException("Blocked throwable logged with clog.error"), null)
+        Timber.wtf(IllegalStateException("Blocked throwable logged at fatal priority"), "Cannot recover")
 
         assertTrue(events.isEmpty())
     }
