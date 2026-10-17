@@ -75,21 +75,22 @@ class StackTagTest {
 
     @Test
     fun timberErrorWithMessage_keepsCallerMessage() {
-        Timber.e(IllegalStateException("boom"), "Failed to load")
+        Timber.e(IllegalStateException("Throwable whose message the caller's message replaces"), "Failed to load")
 
         assertEquals("Failed to load", tree.wrapper?.originalMessage)
     }
 
     @Test
     fun timberErrorWithoutMessage_usesThrowableMessage() {
-        Timber.e(IllegalStateException("boom"))
+        val throwableMessage = "Throwable message used when Timber.e has no message"
+        Timber.e(IllegalStateException(throwableMessage))
 
-        assertEquals("boom", tree.wrapper?.originalMessage)
+        assertEquals(throwableMessage, tree.wrapper?.originalMessage)
     }
 
     @Test
     fun steamclogWrapper_isPassedThroughUnchanged() {
-        val wrapper = SteamclogThrowableWrapper("Failed to load", IllegalStateException("boom"), false, null, null)
+        val wrapper = SteamclogThrowableWrapper("Failed to load", IllegalStateException("Throwable inside a wrapper passed straight to Timber"), false, null, null)
 
         Timber.e(wrapper)
 

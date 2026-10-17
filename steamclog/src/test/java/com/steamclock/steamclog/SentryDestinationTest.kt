@@ -5,6 +5,7 @@ import io.sentry.SentryEvent
 import io.sentry.SentryLevel
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -51,6 +52,24 @@ class SentryDestinationTest {
     }
 
     @Test
+    fun errorWithThrowable_capturesSameEventAsErrorWithNullObject() {
+        // Two instances, because Sentry drops a second event for a throwable it has already captured.
+        val twoArgsThrowable = IllegalStateException("Throwable logged with error(message, throwable)")
+        val threeArgsThrowable = IllegalStateException("Throwable logged with error(message, throwable, null)")
+
+        clog.error("Failed to load", twoArgsThrowable)
+        clog.error("Failed to load", threeArgsThrowable, null)
+
+        assertEquals(2, events.size)
+        val (twoArgs, threeArgs) = events
+        assertEquals(threeArgs.level, twoArgs.level)
+        assertEquals(threeArgs.message?.formatted, twoArgs.message?.formatted)
+        assertSame(twoArgsThrowable, twoArgs.throwable)
+        assertSame(threeArgsThrowable, threeArgs.throwable)
+        assertEquals(threeArgs.extras, twoArgs.extras)
+    }
+
+    @Test
     fun fatalPriority_capturesFatalEvent() {
         Timber.wtf("Cannot recover")
 
@@ -70,8 +89,8 @@ class SentryDestinationTest {
     fun blockedThrowable_capturesNoEvent() {
         clog.config.filtering = FilterOut { it is IllegalStateException }
 
-        clog.error("Failed to load", IllegalStateException("boom"), null)
-        Timber.wtf(IllegalStateException("boom"), "Cannot recover")
+        clog.error("Failed to load", IllegalStateException("Blocked throwable logged with clog.error"), null)
+        Timber.wtf(IllegalStateException("Blocked throwable logged at fatal priority"), "Cannot recover")
 
         assertTrue(events.isEmpty())
     }
