@@ -205,14 +205,6 @@ object SteamcLog {
     //---------------------------------------------
     // Private methods
     //---------------------------------------------
-    private fun addObjToMessage(@NonNls message: String, obj: Any?): String {
-        return when(obj) {
-            null -> message
-            is Throwable -> "$message ${obj.message?.let { throwMsg -> " : $throwMsg" }}"
-            else -> "$message : ${obj.getRedactedDescription()}"
-        }
-    }
-
     /**
      * Allows the Steamclog library to log info messages.
      * The Destinations tag each log with the first stack frame outside SteamcLog and Timber, so a
