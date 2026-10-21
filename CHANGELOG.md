@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## Jitpack v2.5 : Unreleased
+## Jitpack v3.0 : Oct 21, 2026
 - Bumped compileSdk and targetSdk to 35, minSdk raised to 23
 - Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 9.0
 - Enabled Gradle configuration cache for faster incremental builds
@@ -24,6 +24,27 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Fixed a log call made before `initWith` crashing with `UninitializedPropertyAccessException`; SteamcLog calls and direct Timber calls before `initWith` are now dropped (#169)
 - Added `clog.error(message, throwable)` and `clog.fatal(message, throwable)`, so a throwable can be logged without passing `null` for the object (#170). Fixed the README's `initWith` example and log export method name.
 - **Breaking:** `SteamclogThrowableWrapper` and the `getRedactedDescription()` extension are now `internal`; both were only meant for the library's own use (#171). Removed the unused private `addObjToMessage`. Apps keep marking safe properties with `Redactable`, which is unchanged.
+- The publish version now comes from the release tag that JitPack passes, instead of a hard-coded `v2.5` (#157)
+- Removed the committed `sentry.properties` (a Sentry auth token for the sample app) and gitignored it. The sample app uploads ProGuard mappings only when `SENTRY_AUTH_TOKEN` is set. Build-only change, no effect on the published library.
+
+---
+
+## Jitpack v2.7 : Jan 29, 2025
+- JitPack builds use JDK 17 (#126). First release since v2.4 that resolves on JitPack.
+
+---
+
+## Jitpack v2.6 : Jan 29, 2025
+**Not available on JitPack:** the build failed, use v2.7.
+- Updated Sentry Android SDK 6.23.0 → 7.9.0 (#125)
+
+---
+
+## Jitpack v2.5 : Jan 29, 2025
+**Not available on JitPack:** the build failed, use v2.7.
+- Updated AGP 7.4.2 → 8.5.2, Gradle wrapper 7.6 → 8.7, Kotlin 1.8.10 → 2.0.0, compileSdk 33 → 34, JVM toolchain 17 (#124)
+- Updated Sentry Gradle Plugin 3.11.0 → 4.5.1, kotlinx-coroutines 1.6.2 → 1.9.0, appcompat 1.4.1 → 1.7.0, constraintlayout 2.1.4 → 2.2.0, material 1.6.1 → 1.12.0 (#124)
+- Sample app enables Sentry auto-init in its manifest (#124)
 
 ---
 

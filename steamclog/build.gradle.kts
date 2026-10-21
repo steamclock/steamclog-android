@@ -18,7 +18,8 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = "com.steamclock.steamclog"
                 artifactId = "release"
-                version = "v2.5"
+                // #157: JitPack passes the release tag as -Pversion; don't hard-code it here.
+                version = project.version.toString()
             }
         }
     }
