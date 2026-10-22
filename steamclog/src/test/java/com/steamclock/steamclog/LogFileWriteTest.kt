@@ -7,10 +7,17 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
 
 /**
  * Checks the log file writes that run on the destination's background thread (#151): reads wait
- * for pending writes, concurrent logs are all kept (#155), and flush waits for the queue.
+ * for pending writes, lines logged from several threads at once are all kept, flush waits for the
+ * queue and gives up after its timeout, and the crash handler flushes before it hands off.
+ *
+ * No test here rotates a file. The rotation race (#155) is prevented by design, since only the
+ * file thread ever rotates; a test that rotates would also lose lines on purpose (rotation empties
+ * the oldest file), so it could not check that every line was kept.
  *
  * Each test uses its own ExternalLogFileDestination rather than initWith, so no test shares the
  * SteamcLog singleton's cached log file with another. setUp sets the config with reflection
@@ -69,6 +76,23 @@ class LogFileWriteTest {
         destination.flush(timeoutMs = 1000)
 
         assertTrue(linesOnDisk().any { it.endsWith("> line written before fatal closes the app") })
+    }
+
+    @Test
+    fun flush_returnsAfterTimeout_withoutThrowing_whenTheFileThreadIsBusy() {
+        // Hold the file thread with a task that waits on a latch, so flush cannot finish in time.
+        // fileExecutor is private; reflection reads it through its lazy delegate.
+        val executor = (destination.javaClass.getDeclaredField("fileExecutor\$delegate")
+            .apply { isAccessible = true }.get(destination) as Lazy<*>).value as ExecutorService
+        val release = CountDownLatch(1)
+        executor.execute { release.await() }
+
+        val start = System.nanoTime()
+        destination.flush(timeoutMs = 100)
+        val elapsedMs = (System.nanoTime() - start) / 1_000_000
+        release.countDown()
+
+        assertTrue("flush took $elapsedMs ms", elapsedMs in 100..900)
     }
 
     @Test

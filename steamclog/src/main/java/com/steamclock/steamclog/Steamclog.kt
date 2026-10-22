@@ -246,6 +246,13 @@ object SteamcLog {
      * process before the last lines reach the file. Wraps the current default handler (Sentry's,
      * when Sentry is set up) so the file is flushed first. Installed once, since initWith may be
      * called again (#168).
+     *
+     * How the handler chain works: the JVM keeps one "default uncaught exception handler" per
+     * process and calls it when any thread throws an exception nobody catches. Android's own
+     * handler reports the crash and kills the process. Sentry, when it starts (usually before
+     * initWith), saves that handler and replaces it with one that captures the crash and then
+     * calls the saved one. This does the same: it saves whatever handler is current, and the new
+     * handler flushes the log file, then calls the saved handler, so Sentry and Android still run.
      */
     private fun installFlushOnCrash() {
         if (flushOnCrashInstalled) return
@@ -257,6 +264,9 @@ object SteamcLog {
 
     /**
      * Returns a handler that flushes [fileTree], then passes the exception to [previous].
+     * The flush waits at most FATAL_FILE_FLUSH_TIMEOUT_MS, so a stuck disk cannot stop the crash
+     * from reaching Sentry. Internal so tests can build one without replacing the process-wide
+     * handler.
      */
     internal fun flushingUncaughtExceptionHandler(
         fileTree: ExternalLogFileDestination,
