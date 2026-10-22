@@ -52,12 +52,18 @@ flush returns once everything queued before it is on disk.
    `getLogFileContents` does with `sortedLogFiles` and the three-argument `removeOldLogFiles`.
 3. **Flush before the process ends.** The file thread is a daemon thread, so it never keeps a JVM
    process alive, and lines still in the queue are lost when the process dies. Every path that
-   ends the process flushes first, with a timeout:
+   SteamcLog sees end the process flushes first, with a timeout:
    - `SteamcLog.fatal` flushes for up to 1 second, then flushes Sentry for up to 2 seconds. The
      total stays below Android's 5-second ANR limit.
    - `initWith` wraps the default uncaught-exception handler. The wrapper flushes for up to
      1 second, then calls the handler it replaced (Sentry's, when Sentry is set up), which then
      calls Android's handler.
+
+   Some endings run no code in the app, so nothing can flush: Android killing the app to free
+   memory, a force-stop, the kill after an ANR, a native crash, and other code calling
+   `Process.killProcess` or `System.exit`. Lines still queued then are lost, usually the last few
+   milliseconds' worth. Before #151 each line was written before the log call returned, so it
+   survived these. This is the accepted cost of writing off the calling thread.
 4. **Blocking reads stay off the main thread where possible.** `getFullLogContents()` and
    `getAllLogFiles()` block until pending writes finish. Their KDoc says so.
 
@@ -78,3 +84,8 @@ A `HandlerThread` fits work that needs delays or message passing. The file threa
 rotation, #155), flush and its timeout, the crash handler, and the thread name in each line. The
 rotation test lets the emptied file's old contents disappear and checks only that every new line
 is written once.
+
+`LogFileStrictModeTest` (instrumented, `steamclog/src/androidTest`) logs from the main thread
+with StrictMode's disk read and write checks set to kill the process, then checks the lines reach
+the file. Run it with `./gradlew :steamclog:connectedDebugAndroidTest` on a device or emulator.
+It passed on API 23, 28, 35 and 36 when #151 landed, and fails on the code before #151.

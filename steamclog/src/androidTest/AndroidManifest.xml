@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- The instrumented-test app has no Sentry DSN, and Sentry's auto-init provider crashes
+             the app at startup without one. SteamcLog's Sentry calls are no-ops without init. -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
+    </application>
+</manifest>
