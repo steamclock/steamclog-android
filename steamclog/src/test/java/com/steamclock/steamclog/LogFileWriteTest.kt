@@ -122,6 +122,43 @@ class LogFileWriteTest {
     }
 
     @Test
+    fun getLogFilesOrNull_returnsNullAfterTimeout_whenTheFileThreadIsBusy() {
+        val executor = (destination.javaClass.getDeclaredField("fileExecutor\$delegate")
+            .apply { isAccessible = true }.get(destination) as Lazy<*>).value as ExecutorService
+        val release = CountDownLatch(1)
+        executor.execute { release.await() }
+
+        val files = destination.getLogFilesOrNull(LogSort.LastModifiedDesc, timeoutMs = 100)
+        release.countDown()
+
+        assertEquals(null, files)
+    }
+
+    @Test
+    fun getLogFilesOrNull_onAnInterruptedThread_returnsNull_andKeepsTheInterruptFlag() {
+        logInfo("line logged before an interrupted user report")
+        Thread.currentThread().interrupt()
+
+        val files = destination.getLogFilesOrNull(LogSort.LastModifiedDesc, timeoutMs = 1000)
+        // Thread.interrupted() reads the flag and clears it, so later tests run uninterrupted.
+        val stillInterrupted = Thread.interrupted()
+
+        assertEquals(null, files)
+        assertTrue(stillInterrupted)
+    }
+
+    @Test
+    fun flush_onAnInterruptedThread_keepsTheInterruptFlag() {
+        logInfo("line logged before an interrupted flush")
+        Thread.currentThread().interrupt()
+
+        destination.flush(timeoutMs = 1000)
+        val stillInterrupted = Thread.interrupted()
+
+        assertTrue(stillInterrupted)
+    }
+
+    @Test
     fun uncaughtExceptionHandler_flushesPendingLines_thenCallsPreviousHandler() {
         var previousHandlerSaw: Throwable? = null
         val handler = SteamcLog.flushingUncaughtExceptionHandler(destination) { _, throwable ->

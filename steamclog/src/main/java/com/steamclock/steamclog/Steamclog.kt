@@ -30,6 +30,9 @@ object SteamcLog {
     // Doc: docs/evergreen/log-files.md — flush log lines before the process ends (#151).
     // Together with FATAL_FLUSH_TIMEOUT_MS this stays below the ANR threshold.
     private const val FATAL_FILE_FLUSH_TIMEOUT_MS = 1000L
+    // #151: A user report may be logged on the main thread; listing the files to attach must not
+    // wait long enough to cause an ANR.
+    private const val ATTACH_LOG_FILES_TIMEOUT_MS = 1000L
     private var flushOnCrashInstalled = false
     private const val FATAL_EXIT_CODE = 10
 
@@ -197,6 +200,15 @@ object SteamcLog {
      */
     fun getAllLogFiles(logSort: LogSort): List<File>? {
         return externalLogFileTree.getLogFiles(logSort)
+    }
+
+    /**
+     * The newest log files, for a user report's attachments. Unlike [getAllLogFiles], waits at
+     * most ATTACH_LOG_FILES_TIMEOUT_MS and never throws, since it runs inside a log call (#144).
+     * Returns null if the files could not be listed in time.
+     */
+    internal fun getLogFilesForAttachment(logSort: LogSort): List<File>? {
+        return externalLogFileTree.getLogFilesOrNull(logSort, ATTACH_LOG_FILES_TIMEOUT_MS)
     }
 
     /**

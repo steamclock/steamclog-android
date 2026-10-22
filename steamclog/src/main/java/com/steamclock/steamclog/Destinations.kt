@@ -90,8 +90,9 @@ internal class SentryDestination : Timber.Tree() {
                     val attachments = mutableListOf<Attachment>()
                     // #147: Expire old files first so a report never attaches them.
                     SteamcLog.removeOldLogFiles()
-                    // Sort by descending modified time so that we get the "latest" log files
-                    val logFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                    // Sort by descending modified time so that we get the "latest" log files.
+                    // #151: a timed, non-throwing read, since this runs inside a log call.
+                    val logFiles = SteamcLog.getLogFilesForAttachment(LogSort.LastModifiedDesc)
                         ?.take(attachNumLogFiles) ?: emptyList()
                     for (file in logFiles) { attachments += Attachment(file.absolutePath) }
 
@@ -170,7 +171,13 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     private val fileExecutor: ExecutorService by lazy {
         Executors.newSingleThreadExecutor { runnable ->
             // The name shows in thread dumps and crash reports, so the thread is easy to identify.
-            Thread(runnable, "steamclog-file-writer").apply { isDaemon = true }
+            // A new thread copies the priority of the thread that creates it (usually the main
+            // thread), so lower it: writing logs must not compete with UI work.
+            val backgroundRunnable = Runnable {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                runnable.run()
+            }
+            Thread(backgroundRunnable, "steamclog-file-writer").apply { isDaemon = true }
         }
     }
 
@@ -221,8 +228,31 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     internal fun flush(timeoutMs: Long) {
         try {
             fileExecutor.submit { }.get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            // get() clears the caller's interrupt flag when it throws; set it again so the
+            // caller's own code still sees that it was interrupted.
+            Thread.currentThread().interrupt()
+            logToConsole("Log file flush was interrupted: $e")
         } catch (e: Exception) {
             logToConsole("Log file flush did not finish: $e")
+        }
+    }
+
+    /**
+     * Like [getLogFiles], for use inside a log call (attaching files to a user report): waits at
+     * most [timeoutMs] and never throws. Returns null if the files could not be listed in time.
+     * Doc: docs/evergreen/log-files.md — reads inside a log call have a timeout and never throw.
+     */
+    internal fun getLogFilesOrNull(sort: LogSort, timeoutMs: Long): List<File>? {
+        return try {
+            fileExecutor.submit(Callable { sortedLogFiles(sort) }).get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            logToConsole("Log files not listed, interrupted: $e")
+            null
+        } catch (e: Exception) {
+            logToConsole("Log files not listed: $e")
+            null
         }
     }
 

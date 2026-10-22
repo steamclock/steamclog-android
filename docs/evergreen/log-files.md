@@ -66,6 +66,14 @@ flush returns once everything queued before it is on disk.
    survived these. This is the accepted cost of writing off the calling thread.
 4. **Blocking reads stay off the main thread where possible.** `getFullLogContents()` and
    `getAllLogFiles()` block until pending writes finish. Their KDoc says so.
+5. **Reads inside a log call have a timeout and never throw.** A log call never throws (#144)
+   and may run on the main thread. When a user report attaches log files, the Sentry tree lists
+   them with `SteamcLog.getLogFilesForAttachment`, which waits at most 1 second and returns
+   null (no attachments) on a timeout, an interrupted caller, or an error. Use the same kind of
+   read for any other file access added to a log call.
+6. **The file thread runs at background priority.** A new thread copies the priority of the
+   thread that creates it, usually the main thread, so the thread lowers itself to
+   `THREAD_PRIORITY_BACKGROUND` before running any task.
 
 ## Why an executor and not a HandlerThread
 
