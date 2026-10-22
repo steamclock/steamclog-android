@@ -177,7 +177,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     /**
      * Runs [block] on the file thread after every pending write, and waits for its result.
      * Never call it from the file thread itself: it would wait for itself forever.
-     * Doc: docs/evergreen/log-files.md (rule 2).
+     * Doc: docs/evergreen/log-files.md — never call from a task already on the file thread.
      */
     private fun <T> onFileThread(block: () -> T): T = fileExecutor.submit(Callable { block() }).get()
 
@@ -216,7 +216,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      * Waits up to [timeoutMs] for every pending line to be written. Used before the process is
      * killed, so the last lines (such as a fatal log) are not lost. Never throws: on timeout the
      * queued lines keep being written in the background and the caller goes on.
-     * Doc: docs/evergreen/log-files.md (rule 3).
+     * Doc: docs/evergreen/log-files.md — flush before the process ends, with a timeout.
      */
     internal fun flush(timeoutMs: Long) {
         try {

@@ -39,9 +39,13 @@ flush returns once everything queued before it is on disk.
 
 ## Rules
 
-1. **All log file access goes through the file thread.** Writing, rotating, deleting and reading
-   the files, and the `cachedCurrentLogFile` state, belong to the file thread only. This is why
-   no locks are needed, and why two log calls can never rotate the same file at once (#155).
+1. **All log file access inside SteamcLog goes through the file thread.** Writing, rotating,
+   deleting and listing the files, and the `cachedCurrentLogFile` state, belong to the file
+   thread only. This is why no locks are needed, and why two log calls can never rotate the
+   same file at once (#155). `getAllLogFiles()` is the exception: it returns `File`s that the
+   caller reads on its own thread. SentryDestination attaches them to a user report, and Sentry
+   reads them later. A line written during that read, or a rotation that empties the file, can
+   show up in the attachment. This is accepted for now; #179 tracks attaching copies instead.
 2. **Code running on the file thread never waits on the file thread.** `onFileThread()` queues a
    task and blocks until it runs. Called from a task that is already on the file thread, it waits
    for itself forever. Inside a file-thread task, call the direct versions instead, as

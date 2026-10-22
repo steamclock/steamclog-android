@@ -245,7 +245,7 @@ object SteamcLog {
      * process before the last lines reach the file. Wraps the current default handler (Sentry's,
      * when Sentry is set up) so the file is flushed first, and the replaced handler still runs.
      * Installed once, since initWith may be called again (#168).
-     * Doc: docs/evergreen/log-files.md (rule 3).
+     * Doc: docs/evergreen/log-files.md — flush before the process ends, with a timeout.
      */
     private fun installFlushOnCrash() {
         if (flushOnCrashInstalled) return
