@@ -71,9 +71,9 @@ dependencies {
     // #150: api, because the public API exposes Timber types (addCustomTree takes a Timber.Tree).
     api(libs.timber)
     // https://github.com/getsentry/sentry-java/releases
-    // #150: implementation, because no Sentry type is in the public API. Apps that call Sentry
-    // directly declare their own Sentry dependency (see the README).
-    implementation(libs.sentry.android)
+    // #150: api, so an app can call Sentry directly without its own Sentry dependency; SteamcLog
+    // provides Sentry for the apps that use it (see the README).
+    api(libs.sentry.android)
 
     testImplementation(libs.junit)
 }

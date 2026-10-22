@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
 ## Jitpack v3.1 : Unreleased
-- Timber is now an `api` dependency, so apps can use `Timber.Tree` with `addCustomTree` and call Timber directly without declaring Timber themselves (#150). Sentry stays an `implementation` dependency; the README now says apps that call Sentry directly must keep their own Sentry dependency.
+- Timber and Sentry are now `api` dependencies, so apps can use `Timber.Tree` with `addCustomTree`, and call Timber and Sentry directly, without declaring them themselves (#150). Apps that removed their own Sentry dependency, as the README advised, can now call Sentry again.
 
 ---
 
