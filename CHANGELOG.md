@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
+## Jitpack v3.1 : Unreleased
+- Timber and Sentry are now `api` dependencies, so apps can use `Timber.Tree` with `addCustomTree`, and call Timber and Sentry directly, without declaring them themselves (#150). Apps that removed their own Sentry dependency, as the README advised, can now call Sentry again.
+
+---
+
 ## Jitpack v3.0 : Oct 21, 2026
 - Bumped compileSdk and targetSdk to 35, minSdk raised to 23
 - Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 9.0
