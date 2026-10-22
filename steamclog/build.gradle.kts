@@ -44,6 +44,7 @@ android {
     defaultConfig {
         minSdk = 23
         consumerProguardFiles("consumer-rules.pro")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -76,4 +77,7 @@ dependencies {
     api(libs.sentry.android)
 
     testImplementation(libs.junit)
+    // Instrumented tests only (steamclog/src/androidTest); not part of the published library.
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

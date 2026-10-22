@@ -27,6 +27,13 @@ object SteamcLog {
     //---------------------------------------------
     // Below the 5 second ANR threshold, since fatal may be called on the main thread.
     private const val FATAL_FLUSH_TIMEOUT_MS = 2000L
+    // Doc: docs/evergreen/log-files.md — flush log lines before the process ends (#151).
+    // Together with FATAL_FLUSH_TIMEOUT_MS this stays below the ANR threshold.
+    private const val FATAL_FILE_FLUSH_TIMEOUT_MS = 1000L
+    // #151: A user report may be logged on the main thread; listing the files to attach must not
+    // wait long enough to cause an ANR.
+    private const val ATTACH_LOG_FILES_TIMEOUT_MS = 1000L
+    private var flushOnCrashInstalled = false
     private const val FATAL_EXIT_CODE = 10
 
     @Suppress("JoinDeclarationAndAssignment")
@@ -66,6 +73,7 @@ object SteamcLog {
         this.config.fileWritePath?.let {
             updateTree(externalLogFileTree, true)
             externalLogFileTree.removeOldLogFiles()
+            installFlushOnCrash()
         } ?: run {
             logInternal(LogLevel.Warn, "fileWritePath given was null; cannot log to external file")
         }
@@ -178,6 +186,9 @@ object SteamcLog {
     /**
      * Log files may be spread out across multiple files; this method will join
      * all log files into a single String.
+     *
+     * Blocks until every line logged before the call is written and every file is read, so
+     * avoid calling it on the main thread.
      */
     fun getFullLogContents(): String? {
         return externalLogFileTree.getLogFileContents()
@@ -185,9 +196,19 @@ object SteamcLog {
 
     /**
      * Returns a list of ALL log files;
+     * Blocks until every line logged before the call is written.
      */
     fun getAllLogFiles(logSort: LogSort): List<File>? {
         return externalLogFileTree.getLogFiles(logSort)
+    }
+
+    /**
+     * The newest log files, for a user report's attachments. Unlike [getAllLogFiles], waits at
+     * most ATTACH_LOG_FILES_TIMEOUT_MS and never throws, since it runs inside a log call (#144).
+     * Returns null if the files could not be listed in time.
+     */
+    internal fun getLogFilesForAttachment(logSort: LogSort): List<File>? {
+        return externalLogFileTree.getLogFilesOrNull(logSort, ATTACH_LOG_FILES_TIMEOUT_MS)
     }
 
     /**
@@ -220,13 +241,49 @@ object SteamcLog {
     /**
      * Ends the process after a fatal log (#142). Kills the process instead of throwing, so that
      * Sentry does not also capture the crash as a second event, and so a caller cannot catch it.
-     * Sentry is flushed first so the fatal event is sent before the process ends.
+     * The log file and Sentry are flushed first so the fatal line is written and the fatal event
+     * is sent before the process ends.
      */
     private fun closeApp(): Nothing {
+        externalLogFileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
         Sentry.flush(FATAL_FLUSH_TIMEOUT_MS)
         Process.killProcess(Process.myPid())
         // killProcess does not return in practice; exitProcess gives the compiler its Nothing.
         exitProcess(FATAL_EXIT_CODE)
+    }
+
+    /**
+     * #151: Log lines are written on a background thread, so an uncaught exception could end the
+     * process before the last lines reach the file. Wraps the current default handler (Sentry's,
+     * when Sentry is set up) so the file is flushed first, and the replaced handler still runs.
+     * Installed once, since initWith may be called again (#168).
+     * Doc: docs/evergreen/log-files.md — flush before the process ends, with a timeout.
+     */
+    private fun installFlushOnCrash() {
+        if (flushOnCrashInstalled) return
+        flushOnCrashInstalled = true
+        Thread.setDefaultUncaughtExceptionHandler(
+            flushingUncaughtExceptionHandler(externalLogFileTree, Thread.getDefaultUncaughtExceptionHandler())
+        )
+    }
+
+    /**
+     * Returns a handler that flushes [fileTree], then passes the exception to [previous].
+     * The flush waits at most FATAL_FILE_FLUSH_TIMEOUT_MS, so a stuck disk cannot stop the crash
+     * from reaching Sentry. Internal so tests can build one without replacing the process-wide
+     * handler.
+     */
+    internal fun flushingUncaughtExceptionHandler(
+        fileTree: ExternalLogFileDestination,
+        previous: Thread.UncaughtExceptionHandler?
+    ) = Thread.UncaughtExceptionHandler { thread, throwable ->
+        // finally: flush catches Exception but not Error. If it throws one (for example an
+        // OutOfMemoryError during an out-of-memory crash), Sentry and Android must still run.
+        try {
+            fileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
+        } finally {
+            previous?.uncaughtException(thread, throwable)
+        }
     }
 
     /**

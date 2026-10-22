@@ -8,6 +8,10 @@ import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Destinations
@@ -86,8 +90,9 @@ internal class SentryDestination : Timber.Tree() {
                     val attachments = mutableListOf<Attachment>()
                     // #147: Expire old files first so a report never attaches them.
                     SteamcLog.removeOldLogFiles()
-                    // Sort by descending modified time so that we get the "latest" log files
-                    val logFiles = SteamcLog.getAllLogFiles(LogSort.LastModifiedDesc)
+                    // Sort by descending modified time so that we get the "latest" log files.
+                    // #151: a timed, non-throwing read, since this runs inside a log call.
+                    val logFiles = SteamcLog.getLogFilesForAttachment(LogSort.LastModifiedDesc)
                         ?.take(attachNumLogFiles) ?: emptyList()
                     for (file in logFiles) { attachments += Attachment(file.absolutePath) }
 
@@ -160,6 +165,29 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     // logFile was originally marked as being "current".
     private var logFileCreatedTimeEstimate: Long? = null
 
+    // Doc: docs/evergreen/log-files.md — all log file access goes through this one thread (#151).
+    // A single-thread executor runs queued tasks one at a time, in order: execute() queues without
+    // waiting, submit() + get() waits for the result. Created on first use.
+    private val fileExecutor: ExecutorService by lazy {
+        Executors.newSingleThreadExecutor { runnable ->
+            // The name shows in thread dumps and crash reports, so the thread is easy to identify.
+            // A new thread copies the priority of the thread that creates it (usually the main
+            // thread), so lower it: writing logs must not compete with UI work.
+            val backgroundRunnable = Runnable {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                runnable.run()
+            }
+            Thread(backgroundRunnable, "steamclog-file-writer").apply { isDaemon = true }
+        }
+    }
+
+    /**
+     * Runs [block] on the file thread after every pending write, and waits for its result.
+     * Never call it from the file thread itself: it would wait for itself forever.
+     * Doc: docs/evergreen/log-files.md — never call from a task already on the file thread.
+     */
+    private fun <T> onFileThread(block: () -> T): T = fileExecutor.submit(Callable { block() }).get()
+
     override fun isLoggable(priority: Int): Boolean {
         return SteamcLog.isInitialized && isLoggable(SteamcLog.config.logLevel.disk, priority)
     }
@@ -171,6 +199,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalThrowable = wrapper?.originalThrowable
 
+        // Built on the calling thread: the tag, thread name and timestamp all describe the caller.
         val fullMessage = generateFullLogMessage(
             priority,
             createCustomStackElementTag(tag),
@@ -180,9 +209,50 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             message
         )
 
-        printLogToExternalFile(fullMessage)
-        originalThrowable?.let {
-            printLogToExternalFile(Log.getStackTraceString(it))
+        // Queue the write and return at once; the file thread writes it after any earlier lines.
+        // printLogToExternalFile catches write errors, so a failing disk never crashes the app.
+        fileExecutor.execute {
+            printLogToExternalFile(fullMessage)
+            originalThrowable?.let {
+                printLogToExternalFile(Log.getStackTraceString(it))
+            }
+        }
+    }
+
+    /**
+     * Waits up to [timeoutMs] for every pending line to be written. Used before the process is
+     * killed, so the last lines (such as a fatal log) are not lost. Never throws: on timeout the
+     * queued lines keep being written in the background and the caller goes on.
+     * Doc: docs/evergreen/log-files.md — flush before the process ends, with a timeout.
+     */
+    internal fun flush(timeoutMs: Long) {
+        try {
+            fileExecutor.submit { }.get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            // get() clears the caller's interrupt flag when it throws; set it again so the
+            // caller's own code still sees that it was interrupted.
+            Thread.currentThread().interrupt()
+            logToConsole("Log file flush was interrupted: $e")
+        } catch (e: Exception) {
+            logToConsole("Log file flush did not finish: $e")
+        }
+    }
+
+    /**
+     * Like [getLogFiles], for use inside a log call (attaching files to a user report): waits at
+     * most [timeoutMs] and never throws. Returns null if the files could not be listed in time.
+     * Doc: docs/evergreen/log-files.md — reads inside a log call have a timeout and never throw.
+     */
+    internal fun getLogFilesOrNull(sort: LogSort, timeoutMs: Long): List<File>? {
+        return try {
+            fileExecutor.submit(Callable { sortedLogFiles(sort) }).get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            logToConsole("Log files not listed, interrupted: $e")
+            null
+        } catch (e: Exception) {
+            logToConsole("Log files not listed: $e")
+            null
         }
     }
 
@@ -273,14 +343,25 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     /**
-     * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now].
-     * The defaults are the log directory, [Config.keepLogsForDays] and the current time; tests
-     * pass their own.
+     * Deletes log files older than [Config.keepLogsForDays], on the file thread. Returns without
+     * waiting; a later read still sees the result, because the file thread runs work in order.
+     */
+    internal fun removeOldLogFiles() {
+        // execute(), not onFileThread(): nobody needs the result, so the caller (initWith, or a
+        // user report) does not wait for the disk.
+        fileExecutor.execute {
+            removeOldLogFiles(getExternalLogDirectory(), SteamcLog.config.keepLogsForDays, System.currentTimeMillis())
+        }
+    }
+
+    /**
+     * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now],
+     * on the calling thread. Tests call this directly with their own values.
      */
     internal fun removeOldLogFiles(
-        directory: File? = getExternalLogDirectory(),
-        keepLogsForDays: Int = SteamcLog.config.keepLogsForDays,
-        now: Long = System.currentTimeMillis()
+        directory: File?,
+        keepLogsForDays: Int,
+        now: Long
     ) {
         val deleteThese = mutableListOf<File>()
         // #147: Long arithmetic; as an Int, 25 days or more overflows and every file is deleted.
@@ -299,8 +380,11 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     /**
      * Returns the list of log files written to the log directory, sorted by the desired method.
+     * Blocks until every line logged before the call is written.
      */
-    fun getLogFiles(sort: LogSort): List<File>? {
+    fun getLogFiles(sort: LogSort): List<File>? = onFileThread { sortedLogFiles(sort) }
+
+    private fun sortedLogFiles(sort: LogSort): List<File>? {
         return when (sort) {
             LogSort.LastModifiedAsc -> {
                 getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }
@@ -315,11 +399,13 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      * Returns the content of ALL log files strung together to form a single String.
      * todo Given the size of the log files it may not be feasible to output this. This meathod
      *   was mostly used by the sample app to test out how the files are being split up.
+     * Blocks until every line logged before the call is written and every file is read.
      */
-    internal fun getLogFileContents(): String {
-        removeOldLogFiles()
+    internal fun getLogFileContents(): String = onFileThread {
+        // Already on the file thread: call the direct versions, not the ones that queue work.
+        removeOldLogFiles(getExternalLogDirectory(), SteamcLog.config.keepLogsForDays, System.currentTimeMillis())
         val logBuilder = StringBuilder()
-        for (file in getLogFiles(LogSort.LastModifiedAsc) ?: emptyList()) {
+        for (file in sortedLogFiles(LogSort.LastModifiedAsc) ?: emptyList()) {
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
@@ -331,7 +417,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             }
         }
 
-        return logBuilder.toString()
+        logBuilder.toString()
     }
 }
 

@@ -13,6 +13,10 @@ internal data class SteamclogThrowableWrapper(
     val redactedObjectData: String?,
     val extraInfo: Map<String, Any>?): Throwable(originalMessage)
 {
+    // #151: Timber turns this wrapper's stack trace into a string on every log call, and nothing
+    // reads it. Skipping the capture keeps that work off the calling thread.
+    override fun fillInStackTrace(): Throwable = this
+
     companion object {
         fun from(throwable: Throwable?): SteamclogThrowableWrapper? {
             if (throwable == null) return null
