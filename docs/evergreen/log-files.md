@@ -1,8 +1,8 @@
 ---
 kind: prescriptive
 summary: "How SteamcLog writes, reads and flushes its log files on one background thread, and the rules code that touches those files must follow."
-last-human-review:
-last-human-reviewer:
+last-human-review: 2026-10-22
+last-human-reviewer: "@ssawchenko"
 ---
 
 # Log files
