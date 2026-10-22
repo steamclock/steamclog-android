@@ -8,6 +8,10 @@ import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Destinations
@@ -160,6 +164,22 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     // logFile was originally marked as being "current".
     private var logFileCreatedTimeEstimate: Long? = null
 
+    // #151: Every file operation runs on this one background thread, so a log call never touches
+    // the disk on the calling thread (usually the main thread). One thread also means two log
+    // calls can never rotate the same file at once (#155). Reads run here too, so they see every
+    // line logged before they were called.
+    private val fileExecutor: ExecutorService by lazy {
+        Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "steamclog-file-writer").apply { isDaemon = true }
+        }
+    }
+
+    /**
+     * Runs [block] on the file thread after every pending write, and waits for its result.
+     * Must not be called from the file thread itself, or it waits for itself forever.
+     */
+    private fun <T> onFileThread(block: () -> T): T = fileExecutor.submit(Callable { block() }).get()
+
     override fun isLoggable(priority: Int): Boolean {
         return SteamcLog.isInitialized && isLoggable(SteamcLog.config.logLevel.disk, priority)
     }
@@ -171,6 +191,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         val wrapper = SteamclogThrowableWrapper.from(throwable, message)
         val originalThrowable = wrapper?.originalThrowable
 
+        // Built on the calling thread: the tag, thread name and timestamp all describe the caller.
         val fullMessage = generateFullLogMessage(
             priority,
             createCustomStackElementTag(tag),
@@ -180,9 +201,23 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             message
         )
 
-        printLogToExternalFile(fullMessage)
-        originalThrowable?.let {
-            printLogToExternalFile(Log.getStackTraceString(it))
+        fileExecutor.execute {
+            printLogToExternalFile(fullMessage)
+            originalThrowable?.let {
+                printLogToExternalFile(Log.getStackTraceString(it))
+            }
+        }
+    }
+
+    /**
+     * Waits up to [timeoutMs] for every pending line to be written. Used before the process is
+     * killed, so the last lines (such as a fatal log) are not lost. Never throws.
+     */
+    internal fun flush(timeoutMs: Long) {
+        try {
+            fileExecutor.submit { }.get(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: Exception) {
+            logToConsole("Log file flush did not finish: $e")
         }
     }
 
@@ -273,14 +308,23 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     }
 
     /**
-     * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now].
-     * The defaults are the log directory, [Config.keepLogsForDays] and the current time; tests
-     * pass their own.
+     * Deletes log files older than [Config.keepLogsForDays], on the file thread. Returns without
+     * waiting; a later read still sees the result, because the file thread runs work in order.
+     */
+    internal fun removeOldLogFiles() {
+        fileExecutor.execute {
+            removeOldLogFiles(getExternalLogDirectory(), SteamcLog.config.keepLogsForDays, System.currentTimeMillis())
+        }
+    }
+
+    /**
+     * Deletes the files in [directory] last modified more than [keepLogsForDays] days before [now],
+     * on the calling thread. Tests call this directly with their own values.
      */
     internal fun removeOldLogFiles(
-        directory: File? = getExternalLogDirectory(),
-        keepLogsForDays: Int = SteamcLog.config.keepLogsForDays,
-        now: Long = System.currentTimeMillis()
+        directory: File?,
+        keepLogsForDays: Int,
+        now: Long
     ) {
         val deleteThese = mutableListOf<File>()
         // #147: Long arithmetic; as an Int, 25 days or more overflows and every file is deleted.
@@ -299,8 +343,11 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     /**
      * Returns the list of log files written to the log directory, sorted by the desired method.
+     * Blocks until every line logged before the call is written.
      */
-    fun getLogFiles(sort: LogSort): List<File>? {
+    fun getLogFiles(sort: LogSort): List<File>? = onFileThread { sortedLogFiles(sort) }
+
+    private fun sortedLogFiles(sort: LogSort): List<File>? {
         return when (sort) {
             LogSort.LastModifiedAsc -> {
                 getExternalLogDirectory()?.listFiles()?.sortedBy { it.lastModified() }
@@ -315,11 +362,13 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
      * Returns the content of ALL log files strung together to form a single String.
      * todo Given the size of the log files it may not be feasible to output this. This meathod
      *   was mostly used by the sample app to test out how the files are being split up.
+     * Blocks until every line logged before the call is written and every file is read.
      */
-    internal fun getLogFileContents(): String {
-        removeOldLogFiles()
+    internal fun getLogFileContents(): String = onFileThread {
+        // Already on the file thread: call the direct versions, not the ones that queue work.
+        removeOldLogFiles(getExternalLogDirectory(), SteamcLog.config.keepLogsForDays, System.currentTimeMillis())
         val logBuilder = StringBuilder()
-        for (file in getLogFiles(LogSort.LastModifiedAsc) ?: emptyList()) {
+        for (file in sortedLogFiles(LogSort.LastModifiedAsc) ?: emptyList()) {
             try {
                 logToConsole("Reading file ${file.name}")
                 // This method is not recommended on huge files. It has an internal limitation of 2 GB file size.
@@ -331,7 +380,7 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             }
         }
 
-        return logBuilder.toString()
+        logBuilder.toString()
     }
 }
 

@@ -27,6 +27,9 @@ object SteamcLog {
     //---------------------------------------------
     // Below the 5 second ANR threshold, since fatal may be called on the main thread.
     private const val FATAL_FLUSH_TIMEOUT_MS = 2000L
+    // #151: Log lines are written on a background thread; wait for them before the process ends.
+    // Together with FATAL_FLUSH_TIMEOUT_MS this stays below the ANR threshold.
+    private const val FATAL_FILE_FLUSH_TIMEOUT_MS = 1000L
     private const val FATAL_EXIT_CODE = 10
 
     @Suppress("JoinDeclarationAndAssignment")
@@ -178,6 +181,9 @@ object SteamcLog {
     /**
      * Log files may be spread out across multiple files; this method will join
      * all log files into a single String.
+     *
+     * Blocks until every line logged before the call is written and every file is read, so
+     * avoid calling it on the main thread.
      */
     fun getFullLogContents(): String? {
         return externalLogFileTree.getLogFileContents()
@@ -185,6 +191,7 @@ object SteamcLog {
 
     /**
      * Returns a list of ALL log files;
+     * Blocks until every line logged before the call is written.
      */
     fun getAllLogFiles(logSort: LogSort): List<File>? {
         return externalLogFileTree.getLogFiles(logSort)
@@ -220,9 +227,11 @@ object SteamcLog {
     /**
      * Ends the process after a fatal log (#142). Kills the process instead of throwing, so that
      * Sentry does not also capture the crash as a second event, and so a caller cannot catch it.
-     * Sentry is flushed first so the fatal event is sent before the process ends.
+     * The log file and Sentry are flushed first so the fatal line is written and the fatal event
+     * is sent before the process ends.
      */
     private fun closeApp(): Nothing {
+        externalLogFileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
         Sentry.flush(FATAL_FLUSH_TIMEOUT_MS)
         Process.killProcess(Process.myPid())
         // killProcess does not return in practice; exitProcess gives the compiler its Nothing.

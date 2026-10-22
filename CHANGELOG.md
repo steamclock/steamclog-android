@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
+## Jitpack v3.1 : Unreleased
+- Log file writes now run on a background thread, so a log call no longer does disk I/O on the calling thread and StrictMode no longer flags every logged line (#151). `getFullLogContents()`, `getAllLogFiles()` and user reports with attached logs wait for pending lines first, and `fatal` waits up to 1 second for them before closing the app. Two threads can no longer rotate the same log file at once (#155).
+- `getFullLogContents()` and `getAllLogFiles()` block until pending lines are written; avoid calling them on the main thread.
+- Log calls no longer capture a stack trace for SteamcLog's internal wrapper. A tree added with `addCustomTree` still receives the wrapper's description (#149), now without stack frames.
+
+---
+
 ## Jitpack v3.0 : Oct 21, 2026
 - Bumped compileSdk and targetSdk to 35, minSdk raised to 23
 - Updated AGP 8.5.2 → 8.13.2, Gradle wrapper 8.7 → 9.0
