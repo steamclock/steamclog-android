@@ -43,3 +43,4 @@ output.json
 obj/
 .externalNativeBuild
 .worktrees/
+sentry.properties

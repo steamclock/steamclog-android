@@ -15,6 +15,13 @@ configurations.configureEach {
     exclude(group = "io.sentry", module = "sentry-android-timber")
 }
 
+// The repo no longer commits a Sentry auth token (sentry.properties), so only upload ProGuard
+// mappings when one is supplied, e.g. SENTRY_AUTH_TOKEN with SENTRY_ORG and SENTRY_PROJECT.
+// Without this, every minified build (JitPack's included) fails at the upload task.
+sentry {
+    autoUploadProguardMapping.set(providers.environmentVariable("SENTRY_AUTH_TOKEN").isPresent)
+}
+
 android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 

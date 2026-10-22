@@ -246,14 +246,14 @@ These steps are for developers looking to create a new release of the Steamclog 
 
 Currently we are hosting the library on [Jitpack](https://jitpack.io/), to deploy a new version of the library:
 
-1. Push all changes to master
+1. In `CHANGELOG.md`, give the unreleased section the new version and the release date, and merge that change to `main`. The publish version is not set in the build files; JitPack takes it from the release tag.
 2. From within the GitHub repo, navigate to the Code panel; on the right side should be a **Releases** section
 3. Click on **Releases** (which should take you [here](https://github.com/steamclock/steamclog-android/releases))
 4. Make note of the latest release version name (ie. v1.1)
 5. Click the **Draft a new release** button on the right
-6. Set the **Tag Version**; it's best use the last release version as a guide (ie. set as v1.2)
+6. Set the **Tag Version** to the version from step 1 (ie. set as v1.2)
 7. Set **Release Title** to be "Steamclog <Version>"
-8. Description is optional, could set changelog here if desired
+8. Set the description to the version's `CHANGELOG.md` section
 9. Click the **Publish Release** button at the bottom
 10. Verify on the [Jitpack page for the Steamclog project](https://jitpack.io/#steamclock/steamclog-android) that the new version is available
 11. Update projects using Steamclog with the new version
