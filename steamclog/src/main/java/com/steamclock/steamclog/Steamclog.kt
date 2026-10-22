@@ -27,9 +27,11 @@ object SteamcLog {
     //---------------------------------------------
     // Below the 5 second ANR threshold, since fatal may be called on the main thread.
     private const val FATAL_FLUSH_TIMEOUT_MS = 2000L
-    // #151: Log lines are written on a background thread; wait for them before the process ends.
-    // Together with FATAL_FLUSH_TIMEOUT_MS this stays below the ANR threshold.
+    // #151: Log lines are written on a background thread; wait for them before the process ends,
+    // after fatal or an uncaught exception. Together with FATAL_FLUSH_TIMEOUT_MS this stays below
+    // the ANR threshold.
     private const val FATAL_FILE_FLUSH_TIMEOUT_MS = 1000L
+    private var flushOnCrashInstalled = false
     private const val FATAL_EXIT_CODE = 10
 
     @Suppress("JoinDeclarationAndAssignment")
@@ -69,6 +71,7 @@ object SteamcLog {
         this.config.fileWritePath?.let {
             updateTree(externalLogFileTree, true)
             externalLogFileTree.removeOldLogFiles()
+            installFlushOnCrash()
         } ?: run {
             logInternal(LogLevel.Warn, "fileWritePath given was null; cannot log to external file")
         }
@@ -236,6 +239,31 @@ object SteamcLog {
         Process.killProcess(Process.myPid())
         // killProcess does not return in practice; exitProcess gives the compiler its Nothing.
         exitProcess(FATAL_EXIT_CODE)
+    }
+
+    /**
+     * #151: Log lines are written on a background thread, so an uncaught exception could end the
+     * process before the last lines reach the file. Wraps the current default handler (Sentry's,
+     * when Sentry is set up) so the file is flushed first. Installed once, since initWith may be
+     * called again (#168).
+     */
+    private fun installFlushOnCrash() {
+        if (flushOnCrashInstalled) return
+        flushOnCrashInstalled = true
+        Thread.setDefaultUncaughtExceptionHandler(
+            flushingUncaughtExceptionHandler(externalLogFileTree, Thread.getDefaultUncaughtExceptionHandler())
+        )
+    }
+
+    /**
+     * Returns a handler that flushes [fileTree], then passes the exception to [previous].
+     */
+    internal fun flushingUncaughtExceptionHandler(
+        fileTree: ExternalLogFileDestination,
+        previous: Thread.UncaughtExceptionHandler?
+    ) = Thread.UncaughtExceptionHandler { thread, throwable ->
+        fileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
+        previous?.uncaughtException(thread, throwable)
     }
 
     /**

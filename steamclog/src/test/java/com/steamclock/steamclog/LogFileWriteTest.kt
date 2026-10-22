@@ -72,6 +72,22 @@ class LogFileWriteTest {
     }
 
     @Test
+    fun uncaughtExceptionHandler_flushesPendingLines_thenCallsPreviousHandler() {
+        var previousHandlerSaw: Throwable? = null
+        val handler = SteamcLog.flushingUncaughtExceptionHandler(destination) { _, throwable ->
+            // The previous handler (Sentry's, in an app) runs after the flush.
+            assertTrue(linesOnDisk().any { it.endsWith("> line logged just before the crash") })
+            previousHandlerSaw = throwable
+        }
+        val crash = IllegalStateException("uncaught exception raised by this test")
+
+        logInfo("line logged just before the crash")
+        handler.uncaughtException(Thread.currentThread(), crash)
+
+        assertEquals(crash, previousHandlerSaw)
+    }
+
+    @Test
     fun writtenLine_namesTheThreadThatLogged_notTheFileThread() {
         val loggingThread = Thread({ logInfo("line from a named thread") }, "test-logging-thread")
         loggingThread.start()
