@@ -10,8 +10,25 @@ last-human-reviewer:
 SteamcLog writes its log files on one background thread, the file thread. A log call never
 reads or writes the log files on the thread that logged. Reads wait for every earlier write, and
 the process flushes pending lines before it ends, when SteamcLog gets the chance (rule 3).
-This doc covers SteamcLog's own log files only; it says nothing about disk use inside the Sentry
-SDK.
+This doc covers SteamcLog's own log files only. Disk use inside the Sentry SDK is outside it: when
+SteamcLog sends an error, user report or fatal log, Sentry reads device files on the calling
+thread (#183).
+
+## Where it lives
+
+All paths are under `steamclog/src/main/java/com/steamclock/steamclog/`. Find a symbol with
+`grep -n`; this doc names symbols, not line numbers, so it stays correct when the files change.
+
+| What | Symbol | File |
+|---|---|---|
+| The file thread and its queue | `ExternalLogFileDestination.fileExecutor` | `Destinations.kt` |
+| Queue a write | `ExternalLogFileDestination.log` | `Destinations.kt` |
+| Blocking read | `ExternalLogFileDestination.onFileThread`, `getLogFiles`, `getLogFileContents` | `Destinations.kt` |
+| Timed read inside a log call | `ExternalLogFileDestination.getLogFilesOrNull`, `SteamcLog.getLogFilesForAttachment` | `Destinations.kt`, `Steamclog.kt` |
+| Flush | `ExternalLogFileDestination.flush` | `Destinations.kt` |
+| Flush before `fatal` ends the process | `SteamcLog.closeApp` | `Steamclog.kt` |
+| Flush before a crash ends the process | `SteamcLog.installFlushOnCrash`, `SteamcLog.flushingUncaughtExceptionHandler` | `Steamclog.kt` |
+| Attaching files to a user report | `SentryDestination.log` | `Destinations.kt` |
 
 ## Why a file thread
 
@@ -101,7 +118,15 @@ old contents disappear and checks only that every new line is written once.
 
 `LogFileStrictModeTest` (instrumented, `steamclog/src/androidTest`) logs from the main thread
 with StrictMode's disk read and write checks set to kill the process, then checks the lines reach
-the file. It uses the `Debug` preset, which sends nothing to Sentry, so it covers the console and
-file trees, not the Sentry tree or user report attachments. Run it with
-`./gradlew :steamclog:connectedDebugAndroidTest` on a device or emulator. During review of #178 it
-passed on API 23, 28, 35 and 36, and it fails on the code before #151.
+the file. Run it with `./gradlew :steamclog:connectedDebugAndroidTest` on a device or emulator.
+It has three tests:
+
+| Test | Preset | Sentry | Covers |
+|---|---|---|---|
+| `logging_onMainThread_doesNoDiskIo_andTheLinesReachTheFile` | `Debug` | Not sent | Console and file trees |
+| `releasePreset_withSentry_breadcrumbsOnMainThread_doNoDiskIo` | `Release` | Set up | Info logs as Sentry breadcrumbs |
+| `releasePreset_errorAndUserReportWithAttachments_onMainThread_doNoSteamcLogDiskIo` | `Release` | Not set up | Error and user report paths, including listing attachments |
+
+The third test leaves Sentry unset because Sentry's own event capture reads device files on the
+calling thread (#183). During review of #178 the first test passed on API 23, 28, 35 and 36 and
+failed on the code before #151; all three passed on API 23 and 35.
