@@ -123,9 +123,10 @@ class App: Application() {
 ### Enabling Sentry Reporting
 
 #### If application already has Sentry setup:
-* Remove the sentry library import from your app `build.gradle`; steamclog will import this for you now.
+* If your app calls Sentry directly (for example `SentryAndroid.init { ... }` or `Sentry.configureScope { ... }`), keep the Sentry dependency in your app `build.gradle`. Steamclog's Sentry dependency is not visible to your app's code. Use a Sentry version compatible with the one Steamclog uses (see `sentry` in `gradle/libs.versions.toml`).
+* If your app does not call Sentry directly, you can remove its Sentry dependency; Steamclog includes Sentry at runtime.
 
-That should be it! Steamclog should now be responsible for calling all Sentry commands using the Sentry dsn values already setup on the project.
+Steamclog will report to Sentry using the Sentry dsn values already set up on the project.
 
 #### If project does not have Sentry setup:
 If the application is **not** setup to report to Sentry yet, do the following:
