@@ -265,8 +265,13 @@ object SteamcLog {
         fileTree: ExternalLogFileDestination,
         previous: Thread.UncaughtExceptionHandler?
     ) = Thread.UncaughtExceptionHandler { thread, throwable ->
-        fileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
-        previous?.uncaughtException(thread, throwable)
+        // finally: flush catches Exception but not Error. If it throws one (for example an
+        // OutOfMemoryError during an out-of-memory crash), Sentry and Android must still run.
+        try {
+            fileTree.flush(FATAL_FILE_FLUSH_TIMEOUT_MS)
+        } finally {
+            previous?.uncaughtException(thread, throwable)
+        }
     }
 
     /**

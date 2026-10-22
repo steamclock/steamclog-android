@@ -74,6 +74,7 @@ A `HandlerThread` fits work that needs delays or message passing. The file threa
 
 ## Tests
 
-`LogFileWriteTest` covers read ordering, several threads logging at once, flush and its timeout,
-the crash handler, and the thread name in each line. No test rotates a file. Rotation empties the
-oldest file by design, so such a test could not check that every line was kept.
+`LogFileWriteTest` covers read ordering, several threads logging at once (with and without a
+rotation, #155), flush and its timeout, the crash handler, and the thread name in each line. The
+rotation test lets the emptied file's old contents disappear and checks only that every new line
+is written once.

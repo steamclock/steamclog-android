@@ -12,12 +12,9 @@ import java.util.concurrent.ExecutorService
 
 /**
  * Checks the log file writes that run on the destination's background thread (#151): reads wait
- * for pending writes, lines logged from several threads at once are all kept, flush waits for the
- * queue and gives up after its timeout, and the crash handler flushes before it hands off.
- *
- * No test here rotates a file. The rotation race (#155) is prevented by design, since only the
- * file thread ever rotates; a test that rotates would also lose lines on purpose (rotation empties
- * the oldest file), so it could not check that every line was kept.
+ * for pending writes, lines logged from several threads at once are all kept, including while a
+ * file rotates (#155), flush waits for the queue and gives up after its timeout, and the crash
+ * handler flushes before it hands off.
  *
  * Each test uses its own ExternalLogFileDestination rather than initWith, so no test shares the
  * SteamcLog singleton's cached log file with another. setUp sets the config with reflection
@@ -67,6 +64,35 @@ class LogFileWriteTest {
 
         val expected = (1..8).flatMap { thread -> (1..100).map { "thread $thread line $it" } }
         assertEquals(expected.sorted(), loggedMessages.sorted())
+    }
+
+    @Test
+    fun logsFromManyThreads_duringRotation_areAllWrittenOnce() {
+        // All 10 rotation files exist and have expired, so the first write must rotate: it empties
+        // the oldest file and writes there. Before #151, two threads could both rotate at once and
+        // empty the file under each other's lines (#155). Old contents may disappear; new lines
+        // must not.
+        val logDirectory = File(folder.root, "logs").apply { mkdirs() }
+        val twoHoursAgo = System.currentTimeMillis() - 2 * 60 * 60 * 1000L
+        for (index in 0 until 10) {
+            File(logDirectory, "sclog_$index.txt").apply {
+                writeText("old line from rotation file $index\n")
+                setLastModified(twoHoursAgo - index * 60_000L) // sclog_9 is the oldest
+            }
+        }
+
+        val threads = (1..8).map { thread ->
+            Thread { (1..100).forEach { logInfo("rotating thread $thread line $it") } }
+        }
+        threads.forEach { it.start() }
+        threads.forEach { it.join() }
+
+        val newMessages = destination.getLogFileContents().lines()
+            .map { it.substringAfter("> ") }
+            .filter { it.startsWith("rotating thread ") }
+
+        val expected = (1..8).flatMap { thread -> (1..100).map { "rotating thread $thread line $it" } }
+        assertEquals(expected.sorted(), newMessages.sorted())
     }
 
     @Test
