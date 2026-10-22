@@ -27,9 +27,8 @@ object SteamcLog {
     //---------------------------------------------
     // Below the 5 second ANR threshold, since fatal may be called on the main thread.
     private const val FATAL_FLUSH_TIMEOUT_MS = 2000L
-    // #151: Log lines are written on a background thread; wait for them before the process ends,
-    // after fatal or an uncaught exception. Together with FATAL_FLUSH_TIMEOUT_MS this stays below
-    // the ANR threshold.
+    // Doc: docs/evergreen/log-files.md — flush log lines before the process ends (#151).
+    // Together with FATAL_FLUSH_TIMEOUT_MS this stays below the ANR threshold.
     private const val FATAL_FILE_FLUSH_TIMEOUT_MS = 1000L
     private var flushOnCrashInstalled = false
     private const val FATAL_EXIT_CODE = 10
@@ -244,15 +243,9 @@ object SteamcLog {
     /**
      * #151: Log lines are written on a background thread, so an uncaught exception could end the
      * process before the last lines reach the file. Wraps the current default handler (Sentry's,
-     * when Sentry is set up) so the file is flushed first. Installed once, since initWith may be
-     * called again (#168).
-     *
-     * How the handler chain works: the JVM keeps one "default uncaught exception handler" per
-     * process and calls it when any thread throws an exception nobody catches. Android's own
-     * handler reports the crash and kills the process. Sentry, when it starts (usually before
-     * initWith), saves that handler and replaces it with one that captures the crash and then
-     * calls the saved one. This does the same: it saves whatever handler is current, and the new
-     * handler flushes the log file, then calls the saved handler, so Sentry and Android still run.
+     * when Sentry is set up) so the file is flushed first, and the replaced handler still runs.
+     * Installed once, since initWith may be called again (#168).
+     * Doc: docs/evergreen/log-files.md (rule 3).
      */
     private fun installFlushOnCrash() {
         if (flushOnCrashInstalled) return

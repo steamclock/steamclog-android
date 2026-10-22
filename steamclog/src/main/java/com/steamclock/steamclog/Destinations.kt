@@ -164,40 +164,9 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
     // logFile was originally marked as being "current".
     private var logFileCreatedTimeEstimate: Long? = null
 
-    //---------------------------------------------
-    // The file thread (#151)
-    //
-    // Why: Timber calls every tree on the thread that logged, which is usually the main thread.
-    // Timber itself never touches the disk, but this tree does, so before #151 every log call
-    // opened, wrote and closed the log file on the main thread.
-    //
-    // How: fileExecutor is a single-thread executor. It owns one background thread and a queue
-    // of tasks, and runs the tasks one at a time, in the order they were added. Every piece of
-    // code that touches the log files goes through it:
-    // - log() builds the line on the calling thread, then queues the write with execute(), which
-    //   returns at once. The caller never waits for the disk.
-    // - Reads (getLogFiles, getLogFileContents) are queued with submit(), which returns a Future.
-    //   Calling get() on the Future blocks the caller until the task has run. Because the queue
-    //   is in order, every write queued before the read has finished by then.
-    // - flush() queues an empty task and waits for it with a timeout, which is a way to say "wait
-    //   until everything queued so far is on disk, but not longer than this".
-    //
-    // Side effects worth knowing:
-    // - Only this thread reads or changes cachedCurrentLogFile and rotates files, so two log calls
-    //   can never rotate the same file at once (#155). Nothing else needs a lock.
-    // - Code running ON the file thread must never call onFileThread(): it would wait for a task
-    //   that cannot start until the current one finishes, so it would wait forever. Inside a
-    //   file-thread task, call the direct versions (see getLogFileContents).
-    // - The thread is a daemon thread, so it never keeps a JVM process (such as a unit test run)
-    //   alive. On Android the process ends when the app is killed either way, so lines still in
-    //   the queue are lost unless something flushes first: fatal() and the uncaught-exception
-    //   handler that initWith installs both do (see SteamcLog).
-    // - The executor and its thread are created on first use (by lazy), so a destination that
-    //   never logs never starts a thread.
-    //
-    // A HandlerThread would also work, but Android's Handler classes do nothing in plain JVM unit
-    // tests, and waiting for a result with a timeout would have to be written by hand.
-    //---------------------------------------------
+    // Doc: docs/evergreen/log-files.md — all log file access goes through this one thread (#151).
+    // A single-thread executor runs queued tasks one at a time, in order: execute() queues without
+    // waiting, submit() + get() waits for the result. Created on first use.
     private val fileExecutor: ExecutorService by lazy {
         Executors.newSingleThreadExecutor { runnable ->
             // The name shows in thread dumps and crash reports, so the thread is easy to identify.
@@ -207,11 +176,8 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     /**
      * Runs [block] on the file thread after every pending write, and waits for its result.
-     * Must not be called from the file thread itself, or it waits for itself forever.
-     *
-     * submit() puts the block at the end of the queue and returns a Future; get() blocks until
-     * the block has run and returns its value. If the block throws, get() throws an
-     * ExecutionException that wraps the original exception.
+     * Never call it from the file thread itself: it would wait for itself forever.
+     * Doc: docs/evergreen/log-files.md (rule 2).
      */
     private fun <T> onFileThread(block: () -> T): T = fileExecutor.submit(Callable { block() }).get()
 
@@ -248,11 +214,9 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
 
     /**
      * Waits up to [timeoutMs] for every pending line to be written. Used before the process is
-     * killed, so the last lines (such as a fatal log) are not lost. Never throws.
-     *
-     * The empty task runs only after every task queued before it, so when get() returns, all of
-     * those lines are written. If the timeout passes first, get() throws a TimeoutException; it is
-     * caught here, the queued lines keep being written in the background, and the caller goes on.
+     * killed, so the last lines (such as a fatal log) are not lost. Never throws: on timeout the
+     * queued lines keep being written in the background and the caller goes on.
+     * Doc: docs/evergreen/log-files.md (rule 3).
      */
     internal fun flush(timeoutMs: Long) {
         try {
