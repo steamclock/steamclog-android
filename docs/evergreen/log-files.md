@@ -40,7 +40,7 @@ flush returns once everything queued before it is on disk.
 ## Rules
 
 1. **All log file access inside SteamcLog goes through the file thread.** Writing, rotating,
-   deleting and listing the files, and the `cachedCurrentLogFile` state, belong to the file
+   deleting, listing and reading the files, and the `cachedCurrentLogFile` state, belong to the file
    thread only. This is why no locks are needed, and why two log calls can never rotate the
    same file at once (#155). `getAllLogFiles()` is the exception: it returns `File`s that the
    caller reads on its own thread. SentryDestination attaches them to a user report, and Sentry
