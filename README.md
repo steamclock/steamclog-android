@@ -72,7 +72,8 @@ To initialize Steamclog call `clog.initWith` in your app's custom Application cl
 This function takes the following required properties:
 * `isDebug` (Boolean): If application is considered to be a debug build; in most cases this is your application's `BuildConfig.DEBUG` flag. Determines the default Log Level Presets Steamclog selects for the build.
 * `fileWritePath` (File): Location where the file destination will write to. Pass the application's `cacheDir`, which is private to the app.
-  * Avoid `externalCacheDir`: on Android 9 and lower (API 23–28), any app with the `READ_EXTERNAL_STORAGE` permission can read files there, including your logs. It can also be `null` when shared storage is unavailable, which turns file logging off.
+  * Avoid `externalCacheDir`: on Android 10 and lower (API 23–29), other apps with the `READ_EXTERNAL_STORAGE` permission can read files there, including your logs. On Android 10 this applies to apps that use legacy external storage. It can also be `null` when shared storage is unavailable, which turns file logging off.
+  * If your app already wrote logs to `externalCacheDir`, delete `File(externalCacheDir, "logs")` once after switching. SteamcLog only cleans up the folder it is given, so the old files stay there otherwise.
 
 Example:
 ```
