@@ -8,6 +8,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Log file writes now run on a background thread, so a log call no longer does disk I/O on the calling thread and StrictMode no longer flags every logged line (#151). `getFullLogContents()` and `getAllLogFiles()` wait for pending lines first. A user report with attached logs waits up to 1 second for them, and is sent without attachments if that runs out. `fatal` and an uncaught exception both wait up to 1 second for them before the app closes. `initWith` wraps the default uncaught-exception handler to do this; the previous handler (Sentry's) still runs after it. Two threads can no longer rotate the same log file at once (#155).
 - `getFullLogContents()` and `getAllLogFiles()` block until pending lines are written; avoid calling them on the main thread.
 - Log calls no longer capture a stack trace for SteamcLog's internal wrapper. A tree added with `addCustomTree` still receives the wrapper's description (#149), now without stack frames.
+- The README, the `Config.fileWritePath` KDoc and the sample app now recommend `cacheDir` for log files instead of `externalCacheDir`, which other apps can read on API 23–29 (#152). Apps already passing `externalCacheDir` should switch, then delete `File(externalCacheDir, "logs")` once: SteamcLog only cleans up the folder it is given. Fixed README step numbering and the `FilterOut` type name (#156).
 
 ---
 

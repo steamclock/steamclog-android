@@ -17,8 +17,10 @@ data class Config(
      val isDebug: Boolean,
 
     /**
-     * Required; Location where the app wishes to store any log files generated (ex. externalCacheDir)
+     * Required; Location where the app wishes to store any log files generated (ex. cacheDir)
      * Required on creation and will not change.
+     * #152: Avoid externalCacheDir. On API 23-29 other apps with READ_EXTERNAL_STORAGE can read it,
+     * and it can be null when shared storage is unavailable, which turns file logging off.
      */
     val fileWritePath: File?,
 

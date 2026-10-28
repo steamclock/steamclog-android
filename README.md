@@ -62,23 +62,25 @@ Most recent version can be found [here](https://github.com/steamclock/steamclog-
     }
 ```
 
-4Sync your project gradle files
+4. Sync your project gradle files
 
-5`Steamclog` singleton should now be available
+5. `Steamclog` singleton should now be available
 
 ### Initialization (Required)
 
 To initialize Steamclog call `clog.initWith` in your app's custom Application class's `onCreate` method.
 This function takes the following required properties:
 * `isDebug` (Boolean): If application is considered to be a debug build; in most cases this is your application's `BuildConfig.DEBUG` flag. Determines the default Log Level Presets Steamclog selects for the build.
-* `fileWritePath` (File): Location where the file destination will write to. This is most easily done by passing along the application's `externalCacheDir` or `cacheDir` file paths.
+* `fileWritePath` (File): Location where the file destination will write to. Pass the application's `cacheDir`, which is private to the app.
+  * Avoid `externalCacheDir`: on Android 10 and lower (API 23–29), other apps with the `READ_EXTERNAL_STORAGE` permission can read files there, including your logs. On Android 10 this applies to apps that use legacy external storage. It can also be `null` when shared storage is unavailable, which turns file logging off.
+  * If your app already wrote logs to `externalCacheDir`, delete `File(externalCacheDir, "logs")` once after switching. SteamcLog only cleans up the folder it is given, so the old files stay there otherwise.
 
 Example:
 ```
 class App: Application() {
 ...
    override fun onCreate() {
-      clog.initWith(Config(isDebug = BuildConfig.DEBUG, fileWritePath = externalCacheDir))
+      clog.initWith(Config(isDebug = BuildConfig.DEBUG, fileWritePath = cacheDir))
    }      
 ```
 
@@ -92,7 +94,7 @@ The Config object has the following optional properties which may be overridden 
 * `keepLogsForDays` (Int, default 3): Determines how long generated log files are kept for.
 * `autoRotateConfig` (AutoRotateConfig, see below): Configuration for auto-rotating file behaviour.
 * `requireRedacted` (Boolean, default false): Indicates if any extra objects being logged must implement the redacted interface. For apps with very sensitive data models, it is suggested to set this to true.
-* `filtering` (FilteredOut, default nothing filtered): Allows application to implement the FilteredOut interface.
+* `filtering` (FilterOut, default nothing filtered): Allows application to implement the FilterOut interface.
 * `logLevel`: (LogLevelPreset, default based on `isDebug` setting): Destination logging levels; it is recommended to use the defaults set by Steamclog instead of initializing these manually. In special cases where more data is desired, update this property.
 
 `AutoRotateConfig`:
@@ -105,7 +107,7 @@ class App: Application() {
    override fun onCreate() {
         clog.initWith(Config(
             BuildConfig.DEBUG,
-            externalCacheDir,
+            cacheDir,
             keepLogsForDays = 3,
             autoRotateConfig = AutoRotateConfig(fileRotationSeconds = 600L),
             requireRedacted = false,

@@ -12,7 +12,7 @@ class App : Application() {
         super.onCreate()
         clog.initWith(Config(
             isDebug = BuildConfig.DEBUG,
-            fileWritePath = externalCacheDir,
+            fileWritePath = cacheDir, // #152: private to the app; see the README
             autoRotateConfig = AutoRotateConfig(10L), // Short rotate so we can more easily test
             filtering = appFiltering,
             detailedLogsOnUserReports = true
