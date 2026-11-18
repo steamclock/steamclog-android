@@ -82,11 +82,11 @@ internal class LogEvent(
     val text: String = transformLogText("$originalMessage$extraData")
 
     /**
-     * The Sentry event message: the message without the extra data, transformed. Only error and
-     * fatal logs become Sentry events, so for other levels this is [text] and costs no transform.
+     * The Sentry event message: the message without the extra data, transformed. For a log that
+     * never becomes a Sentry event this is [text] and costs no transform.
      */
     val eventMessage: String =
-        if (extraData.isEmpty() || priority < Log.ERROR) text else transformLogText(originalMessage)
+        if (extraData.isEmpty() || sentryEventLevel(priority) == null) text else transformLogText(originalMessage)
 
     /**
      * Each throwable printed in [originalThrowable]'s stack trace, with its (header line,
@@ -107,25 +107,27 @@ internal class LogEvent(
         if (!transformSet) return stackTrace
         // #187: a cause or suppressed throwable can be added after the log call, for example when
         // use {} closes a resource after a log-and-rethrow and the file thread renders the trace
-        // later. Only those are transformed here, on the thread that renders the trace.
-        val headers = transformHeaders(printedThrowables(throwable), transformedHeaders)
+        // later. Only those are transformed here, on the thread that renders the trace. That
+        // thread's stack does not include the log call, so a failure report names it from the event.
+        val headers = transformHeaders(printedThrowables(throwable), transformedHeaders, callerTag ?: "unknown")
         return replaceHeaders(stackTrace, headers.values)
     }
 }
 
 /**
  * Returns [known], plus the (header, transformed header) of each throwable in [printed] that
- * [known] does not have yet.
+ * [known] does not have yet. [logCallLocation] is passed to [transformLogText].
  */
 private fun transformHeaders(
     printed: Collection<Throwable>,
-    known: Map<Throwable, Pair<String, String>>
+    known: Map<Throwable, Pair<String, String>>,
+    logCallLocation: String? = null
 ): Map<Throwable, Pair<String, String>> {
     val result = IdentityHashMap(known)
     for (throwable in printed) {
         if (throwable in result) continue
         val header = throwable.toString()
-        result[throwable] = header to transformLogText(header)
+        result[throwable] = header to transformLogText(header, logCallLocation)
     }
     return result
 }
@@ -141,6 +143,16 @@ private fun replaceHeaders(stackTrace: String, headers: Collection<Pair<String, 
     if (replacements.isEmpty()) return stackTrace
     val pattern = replacements.keys.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
     return Regex(pattern).replace(stackTrace) { replacements.getValue(it.value) }
+}
+
+/**
+ * The Sentry event level for a log at [priority], or null when the log stays a breadcrumb.
+ * Only error and fatal logs become Sentry events. Every other level stays a breadcrumb (#142).
+ */
+internal fun sentryEventLevel(priority: Int): SentryLevel? = when (priority) {
+    Log.ERROR -> SentryLevel.ERROR
+    Log.ASSERT -> SentryLevel.FATAL
+    else -> null
 }
 
 /**
@@ -169,12 +181,7 @@ internal class SentryDestination : LogDestination {
         // Create a full log message and include as a breadcrumb to Sentry.
         Sentry.addBreadcrumb(createSentryBreadcrumbFor(priority, event.text))
 
-        // Only error and fatal logs become Sentry events. Every other level stays a breadcrumb (#142).
-        val eventLevel = when (priority) {
-            Log.ERROR -> SentryLevel.ERROR
-            Log.ASSERT -> SentryLevel.FATAL
-            else -> null
-        }
+        val eventLevel = sentryEventLevel(priority)
         if (eventLevel != null) {
             if (originalThrowable != null) {
                 // Check to see if we want to block this Throwable from being logged as an Error.
@@ -628,9 +635,11 @@ internal val transformFailureReported = AtomicBoolean(false)
  * [LogEvent] calls it once per piece of text per log call.
  *
  * Never throws: when the transform throws (an Error included, since a regex can overflow the
- * stack), returns the raw text after [TRANSFORM_FAILED_PREFIX].
+ * stack), returns the raw text after [TRANSFORM_FAILED_PREFIX]. [logCallLocation] names the log
+ * call in the failure report; when null it is found from the current thread's stack, which only
+ * works on the thread that logged.
  */
-internal fun transformLogText(text: String): String {
+internal fun transformLogText(text: String, logCallLocation: String? = null): String {
     // Every destination drops logs made before initWith, so only direct callers reach this
     // without a config.
     if (!SteamcLog.isInitialized) return text
@@ -638,7 +647,7 @@ internal fun transformLogText(text: String): String {
     return try {
         transform(text)
     } catch (t: Throwable) {
-        reportTransformFailure(t, text.length)
+        reportTransformFailure(t, text.length, logCallLocation)
         // #187: a deliberate choice to keep the line rather than drop it. It can write or send
         // the values the transform was meant to remove; the prefix marks those lines.
         TRANSFORM_FAILED_PREFIX + text
@@ -651,9 +660,9 @@ internal fun transformLogText(text: String): String {
  * time, and sent to Sentry once per process so a broken transform is noticed, when the config's
  * remote level takes warnings.
  */
-private fun reportTransformFailure(failure: Throwable, textLength: Int) {
+private fun reportTransformFailure(failure: Throwable, textLength: Int, logCallLocation: String?) {
     // Not the exception's message: it may contain the text.
-    val logCall = createCustomStackElementTag("unknown")
+    val logCall = logCallLocation ?: createCustomStackElementTag("unknown")
     // For a stack overflow the frame may be missing: the stack trace keeps only the deepest frames.
     val transformFrame = findCallerFrame(failure.stackTrace, nonAppFramePrefixes)
     val description = "SteamcLog messageTransform threw ${failure::class.java.name} " +

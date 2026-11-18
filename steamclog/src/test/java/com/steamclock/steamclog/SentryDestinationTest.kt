@@ -1,5 +1,6 @@
 package com.steamclock.steamclog
 
+import android.util.Log
 import io.sentry.Sentry
 import io.sentry.SentryEvent
 import io.sentry.SentryLevel
@@ -183,6 +184,24 @@ class SentryDestinationTest {
 
         assertTrue(events.isEmpty())
         assertFalse(transformFailureReported.get())
+    }
+
+    @Test
+    fun transformFailure_onExceptionAddedAfterTheLogCall_reportsTheLogCallLocation() {
+        // The trace is rendered off the thread that logged (on the file thread in the app), so the
+        // report takes the location from the event instead of the current stack.
+        clog.config.messageTransform = { text ->
+            if (text.contains("added-after-log")) throw IllegalStateException("transform failed in this test")
+            text
+        }
+        val exception = IOException("Read failed")
+        val event = LogEvent(Log.ERROR, "Failed to read", exception, callerTag = "(Reader.kt:42):read")
+        exception.addSuppressed(IOException("Close failed: added-after-log"))
+
+        event.transformStackTrace(exception.stackTraceToString())
+
+        val report = events.single().message?.formatted!!
+        assertTrue(report, report.contains("log call at (Reader.kt:42):read;"))
     }
 
     @Test

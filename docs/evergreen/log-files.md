@@ -55,7 +55,9 @@ they were added.
 | Flush (`flush(timeoutMs)`) | Queues an empty task and waits for it, up to the timeout | Yes, at most `timeoutMs` |
 
 The line is built on the calling thread because its tag, thread name and timestamp describe the
-caller. Only the disk work moves.
+caller. The file thread does the disk work and renders a throwable's stack trace. It runs
+`Config.messageTransform` only on a cause or suppressed exception added after the log call (#187),
+so a slow transform can delay queued writes and flushes.
 
 Because the queue runs in order, a read always sees every line logged before it was called, and a
 flush returns once everything queued before it is on disk.
