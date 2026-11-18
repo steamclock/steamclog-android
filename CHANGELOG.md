@@ -3,7 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the Steamclock [Release Management Guide](https://github.com/steamclock/labs/wiki/Release-Management-Guide).
 
-## Jitpack v3.1 : Unreleased
+## Jitpack v4.0 : Nov 18, 2026
+
+**Upgrading from v3.x.** v4.0 is a major version because `Config` changed in ways that can break existing code (#187):
+- `Config` has a new constructor parameter, `messageTransform`, just before `extraInfo`. A call that passes every argument by position must add `null` before `extraInfo`. Calls that use named arguments, or pass `extraInfo` as a trailing lambda, need no change.
+- `Config` is a data class, so `component9()` now returns `messageTransform` instead of `extraInfo`. Code that destructures a `Config` must be updated.
+- The `Config` constructor and `copy()` signatures changed. A library compiled against v3.x that uses `Config` must be rebuilt against v4.0.
+- `Timber.forest()` now shows one SteamcLog tree instead of up to three. Code that looks up or uproots SteamcLog's trees must be updated.
+- The log file is no longer written after a later `initWith` whose config has no `fileWritePath`.
+
 - Timber and Sentry are now `api` dependencies, so apps can use `Timber.Tree` with `addCustomTree`, and call Timber and Sentry directly, without declaring them themselves (#150). Apps that removed their own Sentry dependency, as the README advised, can now call Sentry again.
 - Log file writes now run on a background thread, so a log call no longer does disk I/O on the calling thread and StrictMode no longer flags every logged line (#151). `getFullLogContents()` and `getAllLogFiles()` wait for pending lines first. A user report with attached logs waits up to 1 second for them, and is sent without attachments if that runs out. `fatal` and an uncaught exception both wait up to 1 second for them before the app closes. `initWith` wraps the default uncaught-exception handler to do this; the previous handler (Sentry's) still runs after it. Two threads can no longer rotate the same log file at once (#155).
 - `getFullLogContents()` and `getAllLogFiles()` block until pending lines are written; avoid calling them on the main thread.
