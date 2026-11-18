@@ -63,7 +63,18 @@ data class Config(
      * extra info passed into individual logging functions, this info is not redacted in any
      * way even if requireRedacted is set, the callback must handle and privacy preservation or redaction
      */
-    var extraInfo: ((ExtraInfoPurpose) -> Map<String, Any>)? = null
+    var extraInfo: ((ExtraInfoPurpose) -> Map<String, Any>)? = null,
+
+    /**
+     * Optional; If set, called on the text of every log line before the console, the log file or
+     * Sentry gets it, so an app can remove values such as credentials (#187). It covers lines
+     * logged through SteamcLog and direct Timber calls, and the stack trace text written for a
+     * throwable. The tag (the caller location) is not passed in.
+     * It runs on the thread that logged (for a stack trace in the log file, on SteamcLog's file
+     * thread), so it must be thread-safe and cheap, and it must not log. If it throws, the text is
+     * replaced with "[log line dropped: transform failed]". Default is null: text is unchanged.
+     */
+    var messageTransform: ((String) -> String)? = null
 ) {
     override fun toString(): String {
         return "Config(" +

@@ -94,6 +94,11 @@ The Config object has the following optional properties which may be overridden 
 * `requireRedacted` (Boolean, default false): Indicates if any extra objects being logged must implement the redacted interface. For apps with very sensitive data models, it is suggested to set this to true.
 * `filtering` (FilteredOut, default nothing filtered): Allows application to implement the FilteredOut interface.
 * `logLevel`: (LogLevelPreset, default based on `isDebug` setting): Destination logging levels; it is recommended to use the defaults set by Steamclog instead of initializing these manually. In special cases where more data is desired, update this property.
+* `messageTransform` (`((String) -> String)?`, default null): Cleans the text of every log line before the console, the log file or Sentry gets it, for example to remove a token from a URL. It applies to `clog.*` calls and to direct `Timber.*` calls, including logged object data and the stack trace text of a throwable. The tag (caller location) is not changed. It runs on the thread that logged (on SteamcLog's file thread for a stack trace written to the log file), so keep it cheap and thread-safe, and do not log from it. If it throws, the line is replaced with `[log line dropped: transform failed]`. It does not change the exception Sentry attaches to an error event.
+
+```
+messageTransform = { text -> text.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
+```
 
 `AutoRotateConfig`:
 * `fileRotationSeconds` (Long, default 600): The number of seconds before a log file is rotated; default of 600 == 10 mins.

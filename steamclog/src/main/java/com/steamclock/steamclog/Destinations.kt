@@ -63,23 +63,26 @@ internal class SentryDestination : Timber.Tree() {
                 // Check to see if we want to block this Throwable from being logged as an Error.
                 if (SteamcLog.config.filtering.shouldBlock(originalThrowable)) {
                     Sentry.addBreadcrumb(
-                        "${originalThrowable::class.simpleName} on blocked list, and has " +
-                                "been blocked from being captured as an exception: " +
-                                "${originalThrowable.message}", breadcrumbCategory
+                        transformLogText(
+                            "${originalThrowable::class.simpleName} on blocked list, and has " +
+                                    "been blocked from being captured as an exception: " +
+                                    "${originalThrowable.message}"
+                        ), breadcrumbCategory
                     )
                     return
                 }
                 // Log stack trace as a breadcrumb (this logged as an INFO breadcrumb by default)
-                Sentry.addBreadcrumb(originalThrowable.stackTraceToString(), breadcrumbCategory)
+                Sentry.addBreadcrumb(transformLogText(originalThrowable.stackTraceToString()), breadcrumbCategory)
             }
 
             // Always use the message as our error report, as this gives us way more contextual
             // info about the problem than the name of the Exception.
+            val eventMessage = transformLogText(originalMessage)
             val sentryEvent = SentryEvent(originalThrowable).apply {
                 level = eventLevel
                 setMessage(Message().apply {
-                    setMessage(originalMessage)
-                    formatted = originalMessage
+                    setMessage(eventMessage)
+                    formatted = eventMessage
                 })
                 wrapper?.extraInfo?.let { setExtras(it) }
             }
@@ -214,7 +217,8 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
         fileExecutor.execute {
             printLogToExternalFile(fullMessage)
             originalThrowable?.let {
-                printLogToExternalFile(Log.getStackTraceString(it))
+                // An exception message can carry the same values as a log message (#187).
+                printLogToExternalFile(transformLogText(Log.getStackTraceString(it)))
             }
         }
     }
@@ -496,8 +500,34 @@ internal fun findCallerFrame(stackTrace: Array<StackTraceElement>): StackTraceEl
 }
 
 /**
+ * Placeholder written or sent instead of a log line when [Config.messageTransform] throws (#187).
+ */
+internal const val TRANSFORM_FAILED_PLACEHOLDER = "[log line dropped: transform failed]"
+
+/**
+ * Returns [text] after [Config.messageTransform] (#187), or [text] unchanged when none is set.
+ * Never throws: when the transform throws (an Error included, since a regex can overflow the
+ * stack), returns [TRANSFORM_FAILED_PLACEHOLDER], so the raw text is never written or sent.
+ */
+internal fun transformLogText(text: String): String {
+    // Every destination drops logs made before initWith, so only direct callers reach this
+    // without a config.
+    if (!SteamcLog.isInitialized) return text
+    val transform = SteamcLog.config.messageTransform ?: return text
+    return try {
+        transform(text)
+    } catch (t: Throwable) {
+        // The class name only: the exception's message may contain the raw text.
+        logToConsole("messageTransform threw ${t::class.java.name}")
+        TRANSFORM_FAILED_PLACEHOLDER
+    }
+}
+
+/**
  * Returns based on given parameters:
  * - [emoji][Message][: Extra data]
+ *
+ * [Config.messageTransform] is applied to the message and extra data, not to the emoji.
  */
 private fun generateSimpleLogMessage(priority: Int,
                                      includeEmoji: Boolean,
@@ -510,7 +540,7 @@ private fun generateSimpleLogMessage(priority: Int,
     val wrapper = SteamclogThrowableWrapper.from(throwable, defaultMessage)
     val extraData = wrapper?.redactedObjectData?.let { ": $it" } ?: run { "" }
     val originalMessage = wrapper?.originalMessage ?: defaultMessage
-    return "$emojiStr$originalMessage$extraData"
+    return "$emojiStr${transformLogText("$originalMessage$extraData")}"
 }
 
 /**
@@ -527,7 +557,7 @@ internal fun generateConsoleLogMessage(priority: Int,
     val simpleMessage = generateSimpleLogMessage(priority, includeEmoji = true, throwable, defaultMessage)
     val originalThrowable = SteamclogThrowableWrapper.from(throwable, defaultMessage)?.originalThrowable
         ?: return simpleMessage
-    return "$simpleMessage\n${originalThrowable.stackTraceToString()}"
+    return "$simpleMessage\n${transformLogText(originalThrowable.stackTraceToString())}"
 }
 
 /**

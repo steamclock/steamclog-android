@@ -5,11 +5,13 @@ import io.sentry.SentryEvent
 import io.sentry.SentryLevel
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import timber.log.Timber
+import java.io.IOException
 
 /**
  * Checks which logs SentryDestination turns into Sentry events (#142). Sentry is started with a
@@ -40,6 +42,8 @@ class SentryDestinationTest {
 
     @After
     fun tearDown() {
+        // The config is shared by every test in the module; leave no transform behind (#182).
+        clog.config.messageTransform = null
         Sentry.close()
     }
 
@@ -83,6 +87,37 @@ class SentryDestinationTest {
         clog.warn("warn")
 
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun messageTransform_appliesToEventMessageAndBreadcrumbs() {
+        clog.config.messageTransform = { it.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
+
+        clog.info("Loading https://host/path?code=from-info-breadcrumb")
+        Timber.i("Loading https://host/path?code=from-timber-breadcrumb")
+        clog.error("Failed https://host/path?code=from-error", IOException("GET https://host/?code=from-exception"))
+
+        val event = events.single()
+        assertEquals("Failed https://host/path?code=<removed>", event.message?.formatted)
+        val breadcrumbs = event.breadcrumbs!!.mapNotNull { it.message }
+        assertTrue(breadcrumbs.contains("Loading https://host/path?code=<removed>"))
+        // The info breadcrumb, the Timber breadcrumb, the error breadcrumb and the stack trace.
+        assertEquals(4, breadcrumbs.count { it.contains("code=<removed>") })
+        assertFalse(breadcrumbs.any { it.contains("code=from-") })
+    }
+
+    @Test
+    fun messageTransformThatThrows_sendsPlaceholder_notRawText() {
+        clog.config.messageTransform = { throw IllegalStateException("transform failed in this test") }
+
+        clog.info("Loading https://host/path?code=raw-breadcrumb")
+        clog.error("Failed https://host/path?code=raw-error", IOException("GET https://host/?code=raw-exception"))
+
+        val event = events.single()
+        assertEquals(TRANSFORM_FAILED_PLACEHOLDER, event.message?.formatted)
+        val breadcrumbs = event.breadcrumbs!!.mapNotNull { it.message }
+        assertEquals(3, breadcrumbs.count { it == TRANSFORM_FAILED_PLACEHOLDER })
+        assertFalse(breadcrumbs.any { it.contains("code=raw-") })
     }
 
     @Test

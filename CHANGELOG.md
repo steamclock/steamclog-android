@@ -8,6 +8,7 @@ The format is based on the Steamclock [Release Management Guide](https://github.
 - Log file writes now run on a background thread, so a log call no longer does disk I/O on the calling thread and StrictMode no longer flags every logged line (#151). `getFullLogContents()` and `getAllLogFiles()` wait for pending lines first. A user report with attached logs waits up to 1 second for them, and is sent without attachments if that runs out. `fatal` and an uncaught exception both wait up to 1 second for them before the app closes. `initWith` wraps the default uncaught-exception handler to do this; the previous handler (Sentry's) still runs after it. Two threads can no longer rotate the same log file at once (#155).
 - `getFullLogContents()` and `getAllLogFiles()` block until pending lines are written; avoid calling them on the main thread.
 - Log calls no longer capture a stack trace for SteamcLog's internal wrapper. A tree added with `addCustomTree` still receives the wrapper's description (#149), now without stack frames.
+- Added `Config.messageTransform`, which lets an app clean the text of each log line before the console, the log file or Sentry gets it, for `clog.*` and direct `Timber.*` calls (#187). If the transform throws, `[log line dropped: transform failed]` is written instead of the raw line. Default is null, which leaves output unchanged. `Config` gains a last constructor parameter with a default, so existing source compiles unchanged.
 
 ---
 
