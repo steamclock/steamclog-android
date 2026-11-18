@@ -3,7 +3,6 @@ package com.steamclock.steamclog
 import android.util.Log
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -12,8 +11,9 @@ import java.io.IOException
 
 /**
  * Checks that Config.messageTransform changes the text the log file and the console get, for
- * lines logged through SteamcLog and through Timber directly, and that a transform that throws
- * never lets the raw text through (#187). SentryDestinationTest covers Sentry.
+ * lines logged through SteamcLog and through Timber directly, that it runs once for the same text,
+ * and that a transform that throws leaves the raw text marked as unscrubbed (#187).
+ * SentryDestinationTest covers Sentry.
  *
  * Like LogFileWriteTest, each test uses its own ExternalLogFileDestination and sets the config
  * with reflection. No test here logs a throwable to the file: Log.getStackTraceString returns
@@ -37,6 +37,7 @@ class MessageTransformTest {
     fun tearDown() {
         // The config is shared by every test in the module; leave no transform behind (#182).
         config.messageTransform = null
+        transformFailureReported.set(false)
     }
 
     private val removeCode: (String) -> String = { it.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
@@ -71,21 +72,51 @@ class MessageTransformTest {
     }
 
     @Test
-    fun transformThatThrowsAnException_writesPlaceholder_notRawLine() {
+    fun transformThatThrowsAnException_writesRawLine_markedUnscrubbed() {
         config.messageTransform = { throw IllegalStateException("transform failed in this test") }
 
         destination.i("Loading https://host/path?code=raw-value-exception")
 
-        assertEquals(listOf(TRANSFORM_FAILED_PLACEHOLDER), loggedMessages())
+        assertEquals(
+            listOf("${TRANSFORM_FAILED_PREFIX}Loading https://host/path?code=raw-value-exception"),
+            loggedMessages()
+        )
     }
 
     @Test
-    fun transformThatThrowsAnError_writesPlaceholder_notRawLine() {
+    fun transformThatThrowsAnError_writesRawLine_markedUnscrubbed() {
         config.messageTransform = { throw StackOverflowError("transform overflowed in this test") }
 
         destination.i("Loading https://host/path?code=raw-value-error")
 
-        assertEquals(listOf(TRANSFORM_FAILED_PLACEHOLDER), loggedMessages())
+        assertEquals(
+            listOf("${TRANSFORM_FAILED_PREFIX}Loading https://host/path?code=raw-value-error"),
+            loggedMessages()
+        )
+    }
+
+    @Test
+    fun sameText_onSameThread_isTransformedOnce() {
+        var calls = 0
+        config.messageTransform = { calls++; removeCode(it) }
+
+        // What the console, file and Sentry destinations each do for one log call.
+        repeat(3) { transformLogText("Loading https://host/path?code=transformed-once") }
+
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun newTransform_doesNotReuseOldResults() {
+        config.messageTransform = removeCode
+        transformLogText("Loading https://host/path?code=before-transform-change")
+
+        config.messageTransform = { it.uppercase() }
+
+        assertEquals(
+            "LOADING HTTPS://HOST/PATH?CODE=BEFORE-TRANSFORM-CHANGE",
+            transformLogText("Loading https://host/path?code=before-transform-change")
+        )
     }
 
     @Test
@@ -96,9 +127,11 @@ class MessageTransformTest {
     }
 
     @Test
-    fun consoleMessage_transformsMessageAndStackTrace_butNotEmoji() {
-        config.messageTransform = removeCode
-        val exception = IOException("GET https://host/path?code=from-exception failed")
+    fun consoleMessage_transformsMessageAndExceptionMessages_butNotEmojiOrFrames() {
+        val inputs = mutableListOf<String>()
+        config.messageTransform = { inputs += it; removeCode(it) }
+        val cause = IOException("GET https://host/path?code=from-cause failed")
+        val exception = IllegalStateException("Load failed for https://host/?code=from-exception", cause)
         val wrapper = SteamclogThrowableWrapper("Loading https://host/path?code=from-message", exception, false, null, null)
 
         val message = generateConsoleLogMessage(Log.ERROR, wrapper, "unused")
@@ -107,17 +140,31 @@ class MessageTransformTest {
             "🚫 Loading https://host/path?code=<removed>\n${removeCode(exception.stackTraceToString())}",
             message
         )
+        // Only the log message and the two exception messages, never the frames.
+        assertEquals(
+            setOf(
+                "Loading https://host/path?code=from-message",
+                "Load failed for https://host/?code=from-exception",
+                "GET https://host/path?code=from-cause failed"
+            ),
+            inputs.toSet()
+        )
     }
 
     @Test
-    fun consoleMessage_transformThatThrows_hidesMessageAndStackTrace() {
+    fun consoleMessage_transformThatThrows_marksMessageAndExceptionMessage() {
         config.messageTransform = { throw IllegalStateException("transform failed in this test") }
         val exception = IOException("GET https://host/path?code=raw-exception-value failed")
         val wrapper = SteamclogThrowableWrapper("Loading https://host/path?code=raw-message-value", exception, false, null, null)
 
         val message = generateConsoleLogMessage(Log.ERROR, wrapper, "unused")
 
-        assertEquals("🚫 $TRANSFORM_FAILED_PLACEHOLDER\n$TRANSFORM_FAILED_PLACEHOLDER", message)
-        assertFalse(message.contains("raw-"))
+        val markedStackTrace = exception.stackTraceToString().replace(
+            "IOException: GET", "IOException: ${TRANSFORM_FAILED_PREFIX}GET"
+        )
+        assertEquals(
+            "🚫 ${TRANSFORM_FAILED_PREFIX}Loading https://host/path?code=raw-message-value\n$markedStackTrace",
+            message
+        )
     }
 }

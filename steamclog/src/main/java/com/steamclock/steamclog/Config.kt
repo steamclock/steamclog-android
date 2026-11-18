@@ -68,11 +68,14 @@ data class Config(
     /**
      * Optional; If set, called on the text of every log line before the console, the log file or
      * Sentry gets it, so an app can remove values such as credentials (#187). It covers lines
-     * logged through SteamcLog and direct Timber calls, and the stack trace text written for a
-     * throwable. The tag (the caller location) is not passed in.
-     * It runs on the thread that logged (for a stack trace in the log file, on SteamcLog's file
-     * thread), so it must be thread-safe and cheap, and it must not log. If it throws, the text is
-     * replaced with "[log line dropped: transform failed]". Default is null: text is unchanged.
+     * logged through SteamcLog and direct Timber calls, including logged object data, and the
+     * messages in a throwable's stack trace (not its "at ..." frames). The tag (the caller
+     * location) is not passed in.
+     * It runs once per piece of text per log call, on the thread that logged, so it must be cheap
+     * and thread-safe, must return the same output for the same input, and must not log.
+     * RISK: if it throws, the raw text is written and sent, after
+     * "[unscrubbed: messageTransform failed] ". SteamcLog reports the first failure to Sentry
+     * without the text. Default is null: text is unchanged.
      */
     var messageTransform: ((String) -> String)? = null
 ) {

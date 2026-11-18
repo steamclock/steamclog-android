@@ -12,6 +12,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Destinations
@@ -63,16 +64,17 @@ internal class SentryDestination : Timber.Tree() {
                 // Check to see if we want to block this Throwable from being logged as an Error.
                 if (SteamcLog.config.filtering.shouldBlock(originalThrowable)) {
                     Sentry.addBreadcrumb(
-                        transformLogText(
-                            "${originalThrowable::class.simpleName} on blocked list, and has " +
-                                    "been blocked from being captured as an exception: " +
-                                    "${originalThrowable.message}"
-                        ), breadcrumbCategory
+                        "${originalThrowable::class.simpleName} on blocked list, and has " +
+                                "been blocked from being captured as an exception: " +
+                                "${originalThrowable.message?.let { transformLogText(it) }}", breadcrumbCategory
                     )
                     return
                 }
                 // Log stack trace as a breadcrumb (this logged as an INFO breadcrumb by default)
-                Sentry.addBreadcrumb(transformLogText(originalThrowable.stackTraceToString()), breadcrumbCategory)
+                Sentry.addBreadcrumb(
+                    transformStackTrace(originalThrowable, originalThrowable.stackTraceToString()),
+                    breadcrumbCategory
+                )
             }
 
             // Always use the message as our error report, as this gives us way more contextual
@@ -211,14 +213,16 @@ internal class ExternalLogFileDestination : Timber.DebugTree() {
             throwable,
             message
         )
+        // #187: transformed here, not on the file thread, so the console and Sentry destinations'
+        // results for the same log call are reused instead of running the transform again.
+        val stackTraceHeaders = originalThrowable?.let { transformedStackTraceHeaders(it) }
 
         // Queue the write and return at once; the file thread writes it after any earlier lines.
         // printLogToExternalFile catches write errors, so a failing disk never crashes the app.
         fileExecutor.execute {
             printLogToExternalFile(fullMessage)
             originalThrowable?.let {
-                // An exception message can carry the same values as a log message (#187).
-                printLogToExternalFile(transformLogText(Log.getStackTraceString(it)))
+                printLogToExternalFile(replaceHeaders(Log.getStackTraceString(it), stackTraceHeaders.orEmpty()))
             }
         }
     }
@@ -500,28 +504,115 @@ internal fun findCallerFrame(stackTrace: Array<StackTraceElement>): StackTraceEl
 }
 
 /**
- * Placeholder written or sent instead of a log line when [Config.messageTransform] throws (#187).
+ * Put in front of the raw text when [Config.messageTransform] throws (#187), so a reader can tell
+ * the line was not cleaned.
  */
-internal const val TRANSFORM_FAILED_PLACEHOLDER = "[log line dropped: transform failed]"
+internal const val TRANSFORM_FAILED_PREFIX = "[unscrubbed: messageTransform failed] "
+
+/**
+ * The last few transform results on one thread, for one transform (#187). Timber hands a log call
+ * to each destination in turn on the calling thread, so the second and third destination reuse the
+ * first one's results instead of running the transform again.
+ */
+private class TransformCache(val transform: (String) -> String) : LinkedHashMap<String, String>(8, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?) = size > 4
+}
+
+private val transformCache = ThreadLocal<TransformCache>()
+
+/** Set once the first transform failure is reported to Sentry. Tests reset it. */
+internal val transformFailureReported = AtomicBoolean(false)
 
 /**
  * Returns [text] after [Config.messageTransform] (#187), or [text] unchanged when none is set.
+ * A result is reused for the same text on the same thread, so the transform must return the same
+ * output for the same input.
+ *
  * Never throws: when the transform throws (an Error included, since a regex can overflow the
- * stack), returns [TRANSFORM_FAILED_PLACEHOLDER], so the raw text is never written or sent.
+ * stack), returns the raw text after [TRANSFORM_FAILED_PREFIX].
  */
 internal fun transformLogText(text: String): String {
     // Every destination drops logs made before initWith, so only direct callers reach this
     // without a config.
     if (!SteamcLog.isInitialized) return text
     val transform = SteamcLog.config.messageTransform ?: return text
-    return try {
+    // A new cache when the app sets a different transform, so no old result is reused.
+    val cache = transformCache.get()?.takeIf { it.transform === transform }
+        ?: TransformCache(transform).also { transformCache.set(it) }
+    cache[text]?.let { return it }
+
+    val result = try {
         transform(text)
     } catch (t: Throwable) {
-        // The class name only: the exception's message may contain the raw text.
-        logToConsole("messageTransform threw ${t::class.java.name}")
-        TRANSFORM_FAILED_PLACEHOLDER
+        reportTransformFailure(t, text.length)
+        // #187: a deliberate, temporary choice to keep the line rather than drop it. It can write
+        // or send the values the transform was meant to remove; the prefix marks those lines.
+        TRANSFORM_FAILED_PREFIX + text
+    }
+    cache[text] = result
+    return result
+}
+
+/**
+ * Reports a transform failure without the text it failed on: the exception class, the length of the
+ * text, where the log call was made and, if found, the transform's own frame. Logged to Logcat each
+ * time, and sent to Sentry once per process so a broken transform is noticed.
+ */
+private fun reportTransformFailure(failure: Throwable, textLength: Int) {
+    // Not the exception's message: it may contain the text.
+    val logCall = findCallerFrame(Throwable().stackTrace)
+    // For a stack overflow the frame may be missing: the stack trace keeps only the deepest frames.
+    val transformFrame = failure.stackTrace.firstOrNull { frame ->
+        nonAppFramePrefixes.none { prefix -> frame.className.startsWith(prefix) }
+    }
+    val description = "SteamcLog messageTransform threw ${failure::class.java.name} " +
+            "on $textLength characters; log call at ${logCall?.asLocation() ?: "unknown"}; " +
+            "transform frame ${transformFrame?.asLocation() ?: "unknown"}"
+    logToConsole(description)
+    if (transformFailureReported.compareAndSet(false, true)) {
+        Sentry.captureMessage(description, SentryLevel.WARNING)
     }
 }
+
+/** Frames that cannot be the app's transform: platform, Kotlin, SteamcLog and Timber code. */
+private val nonAppFramePrefixes = listOf(
+    "java.", "javax.", "jdk.", "sun.", "kotlin.", "android.", "dalvik.", "libcore."
+) + loggingFramePrefixes
+
+private fun StackTraceElement.asLocation() = "($fileName:$lineNumber):$methodName"
+
+/**
+ * Returns pairs of (header line, transformed header line) for [throwable] and every cause and
+ * suppressed throwable printed in its stack trace (#187). A header is the "Class: message" line;
+ * only its message goes through the transform. The "at ..." frames hold no logged values, so they
+ * are not transformed, which keeps the transform's input short.
+ */
+internal fun transformedStackTraceHeaders(throwable: Throwable): List<Pair<String, String>> {
+    val printed = Collections.newSetFromMap(IdentityHashMap<Throwable, Boolean>())
+    collectPrintedThrowables(throwable, printed)
+    return printed.mapNotNull { printedThrowable ->
+        val message = printedThrowable.localizedMessage
+        if (message.isNullOrEmpty()) return@mapNotNull null
+        val header = printedThrowable.toString()
+        header to header.replace(message, transformLogText(message))
+    }
+}
+
+/** Adds [throwable], its causes and its suppressed throwables to [into], once each. */
+private fun collectPrintedThrowables(throwable: Throwable, into: MutableSet<Throwable>) {
+    if (!into.add(throwable)) return
+    throwable.cause?.let { collectPrintedThrowables(it, into) }
+    for (suppressed in throwable.suppressed) collectPrintedThrowables(suppressed, into)
+}
+
+/** Returns [stackTrace] with each header from [transformedStackTraceHeaders] replaced. */
+private fun replaceHeaders(stackTrace: String, headers: List<Pair<String, String>>): String {
+    return headers.fold(stackTrace) { result, (header, transformed) -> result.replace(header, transformed) }
+}
+
+/** Returns [stackTrace], the stack trace of [throwable], with only its messages transformed. */
+internal fun transformStackTrace(throwable: Throwable, stackTrace: String): String =
+    replaceHeaders(stackTrace, transformedStackTraceHeaders(throwable))
 
 /**
  * Returns based on given parameters:
@@ -557,7 +648,7 @@ internal fun generateConsoleLogMessage(priority: Int,
     val simpleMessage = generateSimpleLogMessage(priority, includeEmoji = true, throwable, defaultMessage)
     val originalThrowable = SteamclogThrowableWrapper.from(throwable, defaultMessage)?.originalThrowable
         ?: return simpleMessage
-    return "$simpleMessage\n${transformLogText(originalThrowable.stackTraceToString())}"
+    return "$simpleMessage\n${transformStackTrace(originalThrowable, originalThrowable.stackTraceToString())}"
 }
 
 /**
