@@ -16,7 +16,7 @@ class ConsoleLogMessageTest {
         val exception = IOException("timeout")
         val wrapper = SteamclogThrowableWrapper("Failed to load profile", exception, false, null, null)
 
-        val message = generateConsoleLogMessage(Log.ERROR, wrapper, "Failed to load profile")
+        val message = generateConsoleLogMessage(LogEvent(Log.ERROR, "Failed to load profile", wrapper, callerTag = null))
 
         assertEquals("🚫 Failed to load profile\n${exception.stackTraceToString()}", message)
     }
@@ -25,7 +25,7 @@ class ConsoleLogMessageTest {
     fun clogError_withoutThrowable_isMessageOnly() {
         val wrapper = SteamclogThrowableWrapper("Failed to load profile", null, false, null, null)
 
-        val message = generateConsoleLogMessage(Log.ERROR, wrapper, "Failed to load profile")
+        val message = generateConsoleLogMessage(LogEvent(Log.ERROR, "Failed to load profile", wrapper, callerTag = null))
 
         assertEquals("🚫 Failed to load profile", message)
     }
@@ -36,7 +36,7 @@ class ConsoleLogMessageTest {
         val exception = IOException("timeout")
         val timberMessage = "Failed to load profile\n${exception.stackTraceToString()}"
 
-        val message = generateConsoleLogMessage(Log.ERROR, exception, timberMessage)
+        val message = generateConsoleLogMessage(LogEvent(Log.ERROR, timberMessage, exception, callerTag = null))
 
         assertEquals("🚫 Failed to load profile\n${exception.stackTraceToString()}", message)
     }

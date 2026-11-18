@@ -8,7 +8,8 @@ import org.junit.rules.TemporaryFolder
 import timber.log.Timber
 
 /**
- * Checks that calling initWith more than once plants the log file destination only once (#168).
+ * Checks that calling initWith more than once plants nothing more (#168). Since #187 SteamcLog
+ * plants one SteamclogTree, once, when it loads.
  */
 class InitWithTest {
 
@@ -20,9 +21,9 @@ class InitWithTest {
 
     @After
     fun tearDown() {
-        // SteamcLog is shared by every test in the module; leave no file destination pointing at
-        // the deleted temporary folder.
-        Timber.forest().filterIsInstance<ExternalLogFileDestination>().forEach { Timber.uproot(it) }
+        // SteamcLog is shared by every test in the module; leave no config pointing the file
+        // destination at the deleted temporary folder.
+        SteamcLog::class.java.getDeclaredField("config").apply { isAccessible = true }.set(null, null)
     }
 
     @Test
@@ -33,6 +34,6 @@ class InitWithTest {
         clog.initWith(config())
 
         assertEquals(treeCountAfterFirstInit, Timber.treeCount)
-        assertEquals(1, Timber.forest().filterIsInstance<ExternalLogFileDestination>().size)
+        assertEquals(1, Timber.forest().filterIsInstance<SteamclogTree>().size)
     }
 }

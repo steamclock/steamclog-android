@@ -94,6 +94,15 @@ The Config object has the following optional properties which may be overridden 
 * `requireRedacted` (Boolean, default false): Indicates if any extra objects being logged must implement the redacted interface. For apps with very sensitive data models, it is suggested to set this to true.
 * `filtering` (FilteredOut, default nothing filtered): Allows application to implement the FilteredOut interface.
 * `logLevel`: (LogLevelPreset, default based on `isDebug` setting): Destination logging levels; it is recommended to use the defaults set by Steamclog instead of initializing these manually. In special cases where more data is desired, update this property.
+* `messageTransform` (`((String) -> String)?`, default null): Cleans the text of every log line before the console, the log file or Sentry gets it, for example to remove a token from a URL. It applies to `clog.*` calls and to direct `Timber.*` calls, including logged object data and each `Class: message` line of a throwable's stack trace (the `at ...` frames are left as they are). The tag (caller location) is not changed. It runs once per piece of text per log call, on the thread that logged, and its result is shared by all destinations. A cause or suppressed exception added after the log call is cleaned on the thread that writes the log file. Keep it cheap and thread-safe, and do not log from it.
+
+  It does not reach the exception Sentry attaches to an error event (#189), the `extraInfo` map, or trees added with `addCustomTree`, which receive the raw text.
+
+  **Risk:** if the transform throws, SteamcLog writes and sends the raw text, starting with `[unscrubbed: messageTransform failed] `, so values the transform was meant to remove can reach the log file and Sentry. SteamcLog logs each failure to Logcat, and reports the first one to Sentry as a warning when the remote log level takes warnings. The report gives the exception class, the length of the text and the location of the log call, never the text itself.
+
+```
+messageTransform = { text -> text.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
+```
 
 `AutoRotateConfig`:
 * `fileRotationSeconds` (Long, default 600): The number of seconds before a log file is rotated; default of 600 == 10 mins.

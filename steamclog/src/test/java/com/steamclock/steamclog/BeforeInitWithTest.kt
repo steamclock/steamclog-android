@@ -59,13 +59,13 @@ class BeforeInitWithTest {
     @Test
     fun destinations_beforeInitWith_logNothing() {
         val destinations = listOf(ConsoleDestination(), SentryDestination(), ExternalLogFileDestination())
-        for (destination in destinations) {
-            // isLoggable is protected in Timber.Tree.
-            val isLoggable = destination.javaClass.getDeclaredMethod("isLoggable", Int::class.java)
-                .apply { isAccessible = true }
-            for (priority in Log.VERBOSE..Log.ASSERT) {
-                assertFalse(isLoggable.invoke(destination, priority) as Boolean)
-            }
+        val tree = SteamclogTree(destinations)
+        // isLoggable is protected in Timber.Tree.
+        val treeIsLoggable = SteamclogTree::class.java.getDeclaredMethod("isLoggable", Int::class.java)
+            .apply { isAccessible = true }
+        for (priority in Log.VERBOSE..Log.ASSERT) {
+            assertFalse(treeIsLoggable.invoke(tree, priority) as Boolean)
+            for (destination in destinations) assertFalse(destination.accepts(priority))
         }
     }
 
