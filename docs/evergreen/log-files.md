@@ -119,13 +119,14 @@ old contents disappear and checks only that every new line is written once.
 `LogFileStrictModeTest` (instrumented, `steamclog/src/androidTest`) logs from the main thread
 with StrictMode's disk read and write checks set to kill the process, then checks the lines reach
 the file. Run it with `./gradlew :steamclog:connectedDebugAndroidTest` on a device or emulator.
-It has three tests:
+It has four tests:
 
 | Test | Preset | Sentry | Covers |
 |---|---|---|---|
 | `logging_onMainThread_doesNoDiskIo_andTheLinesReachTheFile` | `Debug` | Not sent | Console and file trees |
 | `releasePreset_withSentry_breadcrumbsOnMainThread_doNoDiskIo` | `Release` | Set up | Info logs as Sentry breadcrumbs |
 | `releasePreset_errorAndUserReportWithAttachments_onMainThread_doNoSteamcLogDiskIo` | `Release` | Not set up | Error and user report paths, including listing attachments |
+| `messageTransform_appliesToStackTraceInLogFile` | `Debug` | Not sent | `Config.messageTransform` on the stack trace written to the file (#187). Not a StrictMode check: it is here only because it needs this class's log directory (#182). |
 
 The third test leaves Sentry unset because Sentry's own event capture reads device files on the
 calling thread (#183). During review of #178 the first test passed on API 23, 28, 35 and 36 and
