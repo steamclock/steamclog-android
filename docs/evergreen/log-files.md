@@ -22,19 +22,20 @@ All paths are under `steamclog/src/main/java/com/steamclock/steamclog/`. Find a 
 | What | Symbol | File |
 |---|---|---|
 | The file thread and its queue | `ExternalLogFileDestination.fileExecutor` | `Destinations.kt` |
-| Queue a write | `ExternalLogFileDestination.log` | `Destinations.kt` |
+| Queue a write | `ExternalLogFileDestination.write` | `Destinations.kt` |
 | Blocking read | `ExternalLogFileDestination.onFileThread`, `getLogFiles`, `getLogFileContents` | `Destinations.kt` |
 | Timed read inside a log call | `ExternalLogFileDestination.getLogFilesOrNull`, `SteamcLog.getLogFilesForAttachment` | `Destinations.kt`, `Steamclog.kt` |
 | Flush | `ExternalLogFileDestination.flush` | `Destinations.kt` |
 | Flush before `fatal` ends the process | `SteamcLog.closeApp` | `Steamclog.kt` |
 | Flush before a crash ends the process | `SteamcLog.installFlushOnCrash`, `SteamcLog.flushingUncaughtExceptionHandler` | `Steamclog.kt` |
-| Attaching files to a user report | `SentryDestination.log` | `Destinations.kt` |
+| Attaching files to a user report | `SentryDestination.write` | `Destinations.kt` |
 
 ## Why a file thread
 
 Timber calls every planted tree on the thread that logged, which is usually the main thread.
-Timber itself never touches the disk; its `DebugTree` writes to Logcat. SteamcLog's log file tree
-(`ExternalLogFileDestination`) does write to disk. Before #151 it opened, wrote and closed the file
+SteamcLog's one planted tree, `SteamclogTree`, passes each log call to its destinations on that
+same thread (#187). Timber itself never touches the disk; its `DebugTree` writes to Logcat.
+SteamcLog's log file destination (`ExternalLogFileDestination`) does write to disk. Before #151 it opened, wrote and closed the file
 on the calling thread for every line, so an app with StrictMode's disk checks on got a violation
 for every logged line.
 
@@ -46,7 +47,7 @@ they were added.
 
 | Operation | How it uses the queue | Caller waits? |
 |---|---|---|
-| Write a line (`log`) | Builds the line on the calling thread, then queues the write with `execute()` | No |
+| Write a line (`write`) | Builds the line on the calling thread, then queues the write with `execute()` | No |
 | Delete expired files (`removeOldLogFiles()`) | Queues with `execute()` | No |
 | Read (`getLogFiles`, `getLogFileContents`) | Queues with `submit()`, then blocks on the returned `Future.get()` | Yes, until every earlier write is done |
 | Read inside a log call (`getLogFilesOrNull`) | Queues with `submit()`, then waits on `Future.get()` with a timeout | Yes, at most the timeout; returns null instead of throwing (rule 5) |
@@ -89,7 +90,7 @@ flush returns once everything queued before it is on disk.
 4. **Blocking reads stay off the main thread where possible.** `getFullLogContents()` and
    `getAllLogFiles()` block until pending writes finish. Their KDoc says so.
 5. **Reads inside a log call have a timeout and never throw.** A log call never throws (#144)
-   and may run on the main thread. When a user report attaches log files, the Sentry tree lists
+   and may run on the main thread. When a user report attaches log files, the Sentry destination lists
    them with `SteamcLog.getLogFilesForAttachment`, which waits at most 1 second and returns
    null (no attachments) on a timeout, an interrupted caller, or an error. Use the same kind of
    read for any other file access added to a log call.
@@ -119,13 +120,14 @@ old contents disappear and checks only that every new line is written once.
 `LogFileStrictModeTest` (instrumented, `steamclog/src/androidTest`) logs from the main thread
 with StrictMode's disk read and write checks set to kill the process, then checks the lines reach
 the file. Run it with `./gradlew :steamclog:connectedDebugAndroidTest` on a device or emulator.
-It has three tests:
+It has four tests:
 
 | Test | Preset | Sentry | Covers |
 |---|---|---|---|
 | `logging_onMainThread_doesNoDiskIo_andTheLinesReachTheFile` | `Debug` | Not sent | Console and file trees |
 | `releasePreset_withSentry_breadcrumbsOnMainThread_doNoDiskIo` | `Release` | Set up | Info logs as Sentry breadcrumbs |
 | `releasePreset_errorAndUserReportWithAttachments_onMainThread_doNoSteamcLogDiskIo` | `Release` | Not set up | Error and user report paths, including listing attachments |
+| `messageTransform_appliesToStackTraceInLogFile` | `Debug` | Not sent | `Config.messageTransform` on the stack trace written to the file (#187). Not a StrictMode check: it is here only because it needs this class's log directory (#182). |
 
 The third test leaves Sentry unset because Sentry's own event capture reads device files on the
 calling thread (#183). During review of #178 the first test passed on API 23, 28, 35 and 36 and

@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,5 +119,26 @@ class LogFileStrictModeTest {
 
         val contents = clog.getFullLogContents() ?: ""
         assertTrue(contents.contains(userReportMessage))
+    }
+
+    /**
+     * Not a StrictMode check: it is here because it needs the same log directory (see
+     * [logDirectory]). The stack trace is checked on a device because Log.getStackTraceString
+     * returns null in JVM unit tests; MessageTransformTest covers the rest of #187.
+     */
+    @Test
+    fun messageTransform_appliesToStackTraceInLogFile() {
+        val config = Config(isDebug = true, fileWritePath = logDirectory, logLevel = LogLevelPreset.Debug)
+        config.messageTransform = { it.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
+        clog.initWith(config)
+        try {
+            clog.error("Failed with stack trace for the transform test", IllegalStateException("GET https://host/?code=from-device-exception"))
+
+            val contents = clog.getFullLogContents() ?: ""
+            assertTrue(contents.contains("IllegalStateException: GET https://host/?code=<removed>"))
+            assertFalse(contents.contains("code=from-device-exception"))
+        } finally {
+            config.messageTransform = null
+        }
     }
 }

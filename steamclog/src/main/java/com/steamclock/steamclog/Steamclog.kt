@@ -36,10 +36,9 @@ object SteamcLog {
     private var flushOnCrashInstalled = false
     private const val FATAL_EXIT_CODE = 10
 
-    @Suppress("JoinDeclarationAndAssignment")
-    private var customDebugTree: ConsoleDestination
-    private var sentryTree: SentryDestination
-    private var externalLogFileTree: ExternalLogFileDestination
+    private val externalLogFileTree = ExternalLogFileDestination()
+    // #187: the only planted tree. It prepares each log call once for all three destinations.
+    private val steamclogTree = SteamclogTree(listOf(ConsoleDestination(), SentryDestination(), externalLogFileTree))
 
     //---------------------------------------------
     // Public properties
@@ -55,23 +54,14 @@ object SteamcLog {
         get() = ::config.isInitialized
 
     init {
-        // By default plant all trees; setting their level to LogLevel.None will effectively
-        // disable that tree, but we do not uproot it.
-
-        customDebugTree = ConsoleDestination()
-        updateTree(customDebugTree, true)
-
-        sentryTree = SentryDestination()
-        updateTree(sentryTree, true)
-
-        externalLogFileTree = ExternalLogFileDestination()
-        // Don't plant yet; fileWritePath required before we can start writing to ExternalLogFileDestination
+        // Planted once; setting a destination's level to LogLevel.None disables that destination,
+        // and the file destination also stays off until a config has a fileWritePath.
+        updateTree(steamclogTree, true)
     }
 
     fun initWith(config: Config) {
         this.config = config
         this.config.fileWritePath?.let {
-            updateTree(externalLogFileTree, true)
             externalLogFileTree.removeOldLogFiles()
             installFlushOnCrash()
         } ?: run {

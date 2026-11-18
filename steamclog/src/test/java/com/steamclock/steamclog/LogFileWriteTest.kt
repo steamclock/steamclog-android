@@ -33,8 +33,10 @@ class LogFileWriteTest {
         SteamcLog::class.java.getDeclaredField("config").apply { isAccessible = true }.set(null, config)
     }
 
-    // Timber's public entry point, so the call goes through isLoggable and the destination's log.
-    private fun logInfo(message: String) = destination.i(message)
+    // Timber's public entry point on a tree holding only this destination, so the call goes
+    // through isLoggable and the destination's write, as a planted SteamclogTree does.
+    private val tree = SteamclogTree(listOf(destination))
+    private fun logInfo(message: String) = tree.i(message)
 
     /** Reads the log files straight from disk, without going through the file thread. */
     private fun linesOnDisk(): List<String> =

@@ -2,7 +2,13 @@
 // every frame in that package, so a test inside it would never be found as the caller.
 package com.steamclock.stacktagtest
 
+import com.steamclock.steamclog.Config
+import com.steamclock.steamclog.LogDestination
+import com.steamclock.steamclog.LogEvent
+import com.steamclock.steamclog.LogLevelPreset
 import com.steamclock.steamclog.SteamclogThrowableWrapper
+import com.steamclock.steamclog.SteamclogTree
+import com.steamclock.steamclog.clog
 import com.steamclock.steamclog.findCallerFrame
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -95,6 +101,35 @@ class StackTagTest {
         Timber.e(wrapper)
 
         assertSame(wrapper, tree.wrapper)
+    }
+
+    /** A destination that keeps the caller tag SteamclogTree gives it (#187). */
+    private class TagRecordingDestination : LogDestination {
+        val tags = mutableListOf<String?>()
+        override val needsCallerTag = true
+        override fun accepts(priority: Int) = true
+        override fun write(event: LogEvent) { tags += event.callerTag }
+    }
+
+    @Test
+    fun steamclogTree_tagsDirectTimberAndClogCalls_withTheCaller() {
+        // Release has no console level, so nothing calls android.util.Log.
+        clog.initWith(Config(isDebug = false, fileWritePath = null, logLevel = LogLevelPreset.Release))
+        val destination = TagRecordingDestination()
+        val steamclogTree = SteamclogTree(listOf(destination))
+        Timber.plant(steamclogTree)
+        try {
+            Timber.d("direct Timber call tagged by this test"); val timberLine = Throwable().stackTrace[0].lineNumber
+            clog.info("clog call tagged by this test"); val clogLine = Throwable().stackTrace[0].lineNumber
+
+            val method = "steamclogTree_tagsDirectTimberAndClogCalls_withTheCaller"
+            assertEquals(
+                listOf("(StackTagTest.kt:$timberLine):$method", "(StackTagTest.kt:$clogLine):$method"),
+                destination.tags
+            )
+        } finally {
+            Timber.uproot(steamclogTree)
+        }
     }
 
     private fun frame(className: String) = StackTraceElement(className, "method", "File.kt", 1)
