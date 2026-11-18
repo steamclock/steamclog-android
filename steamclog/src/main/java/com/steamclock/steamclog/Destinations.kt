@@ -25,7 +25,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 //
 // SteamcLog plants one Timber tree, SteamclogTree. It prepares each log call once (the caller
 // location, the transformed text) and hands the result to every destination whose level in
-// Steamclog.config.logLevel accepts it. The destinations are not Timber trees.
+// Steamclog.config.logLevel accepts it. The destinations are never planted; ConsoleDestination
+// extends DebugTree only for its Logcat output.
 //-----------------------------------------------------------------------------
 /** Where a prepared log call is written or sent. */
 internal interface LogDestination {
@@ -75,30 +76,71 @@ internal class LogEvent(
     val extraInfo: Map<String, Any>? = wrapper?.extraInfo
     private val originalMessage = wrapper?.originalMessage ?: timberMessage
     private val extraData = wrapper?.redactedObjectData?.let { ": $it" } ?: ""
+    private val transformSet = SteamcLog.isInitialized && SteamcLog.config.messageTransform != null
 
     /** [Message][: Extra data], transformed. */
     val text: String = transformLogText("$originalMessage$extraData")
 
-    /** The message without the extra data, transformed: the Sentry event message. */
-    val eventMessage: String = if (extraData.isEmpty()) text else transformLogText(originalMessage)
-
-    /** The transformed message of [originalThrowable] and each cause and suppressed throwable. */
-    private val exceptionMessages: Map<Throwable, String> = originalThrowable
-        ?.let { transformExceptionMessages(it) } ?: emptyMap()
-
-    /** The transformed message of [originalThrowable], or null if it has none. */
-    val throwableMessage: String? get() = originalThrowable?.let { exceptionMessages[it] }
+    /**
+     * The Sentry event message: the message without the extra data, transformed. Only error and
+     * fatal logs become Sentry events, so for other levels this is [text] and costs no transform.
+     */
+    val eventMessage: String =
+        if (extraData.isEmpty() || priority < Log.ERROR) text else transformLogText(originalMessage)
 
     /**
-     * Returns [stackTrace], the printed stack trace of [originalThrowable], with each exception
-     * message replaced by its transformed form. The "at ..." frames are left as they are.
+     * Each throwable printed in [originalThrowable]'s stack trace, with its (header line,
+     * transformed header line). A header is the throwable's toString(), the "Class: message" line
+     * the stack trace prints, so a custom toString() is covered too.
+     */
+    private val transformedHeaders: Map<Throwable, Pair<String, String>> =
+        if (originalThrowable == null || !transformSet) emptyMap()
+        else transformHeaders(printedThrowables(originalThrowable), emptyMap())
+
+    /**
+     * Returns [stackTrace], the printed stack trace of [originalThrowable], with each header line
+     * replaced by its transformed form. The "at ..." frames are left as they are. Safe to call on
+     * any thread; it does not change this event.
      */
     fun transformStackTrace(stackTrace: String): String {
-        return exceptionMessages.entries.fold(stackTrace) { result, (printed, transformed) ->
-            val header = printed.toString()
-            result.replace(header, header.replace(printed.localizedMessage!!, transformed))
-        }
+        val throwable = originalThrowable ?: return stackTrace
+        if (!transformSet) return stackTrace
+        // #187: a cause or suppressed throwable can be added after the log call, for example when
+        // use {} closes a resource after a log-and-rethrow and the file thread renders the trace
+        // later. Only those are transformed here, on the thread that renders the trace.
+        val headers = transformHeaders(printedThrowables(throwable), transformedHeaders)
+        return replaceHeaders(stackTrace, headers.values)
     }
+}
+
+/**
+ * Returns [known], plus the (header, transformed header) of each throwable in [printed] that
+ * [known] does not have yet.
+ */
+private fun transformHeaders(
+    printed: Collection<Throwable>,
+    known: Map<Throwable, Pair<String, String>>
+): Map<Throwable, Pair<String, String>> {
+    val result = IdentityHashMap(known)
+    for (throwable in printed) {
+        if (throwable in result) continue
+        val header = throwable.toString()
+        result[throwable] = header to transformLogText(header)
+    }
+    return result
+}
+
+/**
+ * Replaces each header in [stackTrace] with its transformed form, in one pass with the longest
+ * header first (#187). A header that contains another (an outer exception whose message repeats
+ * its cause, or two messages where one starts with the other) is replaced whole, and replaced text
+ * is never matched again.
+ */
+private fun replaceHeaders(stackTrace: String, headers: Collection<Pair<String, String>>): String {
+    val replacements = headers.filter { (header, transformed) -> header.isNotEmpty() && header != transformed }.toMap()
+    if (replacements.isEmpty()) return stackTrace
+    val pattern = replacements.keys.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+    return Regex(pattern).replace(stackTrace) { replacements.getValue(it.value) }
 }
 
 /**
@@ -140,7 +182,7 @@ internal class SentryDestination : LogDestination {
                     Sentry.addBreadcrumb(
                         "${originalThrowable::class.simpleName} on blocked list, and has " +
                                 "been blocked from being captured as an exception: " +
-                                "${event.throwableMessage}", breadcrumbCategory
+                                "${originalThrowable.message?.let { transformLogText(it) }}", breadcrumbCategory
                     )
                     return
                 }
@@ -274,6 +316,7 @@ internal class ExternalLogFileDestination : LogDestination {
     //---------------------------------------------
     // Allows us to print out to an external file if desired.
     //---------------------------------------------
+    // Doc: docs/evergreen/log-files.md — build the line on the calling thread, queue only the write.
     override fun write(event: LogEvent) {
         // Built on the calling thread: the tag, thread name and timestamp all describe the caller.
         val fullMessage = generateFullLogMessage(event, includeTimestamp = true, includeEmoji = false)
@@ -539,13 +582,16 @@ private fun createCustomStackElementTag(fallbackTag: String?): String {
     // Steamclog/Timber frames and the actual logging call. Its package will most likely be the new
     // prefix to add.
     val element = findCallerFrame(stackTrace) ?: return fallbackTag ?: "steamclog"
-    return "(${element.fileName}:${element.lineNumber}):${element.methodName}"
+    return element.asLocation()
 }
+
+/** The "(File.kt:42):method" form used for a log line's tag. */
+private fun StackTraceElement.asLocation() = "($fileName:$lineNumber):$methodName"
 
 /**
  * Which frames we need to skip in the call stack to get to the method that called our
  * steamclog logging method (or called Timber directly): the class name prefixes of every frame
- * that sits between the logging call site and a Destination.
+ * that sits between the logging call site and SteamclogTree.
  * The trailing dot keeps the sample app (com.steamclock.steamclogsample) from matching.
  *
  * NOTE: These prefixes may need to change when libraries are updated, as those updates may affect
@@ -556,12 +602,15 @@ private fun createCustomStackElementTag(fallbackTag: String?): String {
 private val loggingFramePrefixes = listOf("com.steamclock.steamclog.", "timber.log.")
 
 /**
- * Returns the first frame in [stackTrace] that does not belong to SteamcLog or Timber, or null if
- * there is none.
+ * Returns the first frame in [stackTrace] whose class starts with none of [skippedPrefixes]
+ * (by default, the first frame outside SteamcLog and Timber), or null if there is none.
  */
-internal fun findCallerFrame(stackTrace: Array<StackTraceElement>): StackTraceElement? {
+internal fun findCallerFrame(
+    stackTrace: Array<StackTraceElement>,
+    skippedPrefixes: List<String> = loggingFramePrefixes
+): StackTraceElement? {
     return stackTrace.firstOrNull { frame ->
-        loggingFramePrefixes.none { prefix -> frame.className.startsWith(prefix) }
+        skippedPrefixes.none { prefix -> frame.className.startsWith(prefix) }
     }
 }
 
@@ -590,8 +639,8 @@ internal fun transformLogText(text: String): String {
         transform(text)
     } catch (t: Throwable) {
         reportTransformFailure(t, text.length)
-        // #187: a deliberate, temporary choice to keep the line rather than drop it. It can write
-        // or send the values the transform was meant to remove; the prefix marks those lines.
+        // #187: a deliberate choice to keep the line rather than drop it. It can write or send
+        // the values the transform was meant to remove; the prefix marks those lines.
         TRANSFORM_FAILED_PREFIX + text
     }
 }
@@ -599,20 +648,21 @@ internal fun transformLogText(text: String): String {
 /**
  * Reports a transform failure without the text it failed on: the exception class, the length of the
  * text, where the log call was made and, if found, the transform's own frame. Logged to Logcat each
- * time, and sent to Sentry once per process so a broken transform is noticed.
+ * time, and sent to Sentry once per process so a broken transform is noticed, when the config's
+ * remote level takes warnings.
  */
 private fun reportTransformFailure(failure: Throwable, textLength: Int) {
     // Not the exception's message: it may contain the text.
-    val logCall = findCallerFrame(Throwable().stackTrace)
+    val logCall = createCustomStackElementTag("unknown")
     // For a stack overflow the frame may be missing: the stack trace keeps only the deepest frames.
-    val transformFrame = failure.stackTrace.firstOrNull { frame ->
-        nonAppFramePrefixes.none { prefix -> frame.className.startsWith(prefix) }
-    }
+    val transformFrame = findCallerFrame(failure.stackTrace, nonAppFramePrefixes)
     val description = "SteamcLog messageTransform threw ${failure::class.java.name} " +
-            "on $textLength characters; log call at ${logCall?.asLocation() ?: "unknown"}; " +
+            "on $textLength characters; log call at $logCall; " +
             "transform frame ${transformFrame?.asLocation() ?: "unknown"}"
     logToConsole(description)
-    if (transformFailureReported.compareAndSet(false, true)) {
+    // The Debug presets send nothing to Sentry, so neither does this report.
+    if (isLoggable(SteamcLog.config.logLevel.remote, Log.WARN) &&
+        transformFailureReported.compareAndSet(false, true)) {
         Sentry.captureMessage(description, SentryLevel.WARNING)
     }
 }
@@ -622,23 +672,11 @@ private val nonAppFramePrefixes = listOf(
     "java.", "javax.", "jdk.", "sun.", "kotlin.", "android.", "dalvik.", "libcore."
 ) + loggingFramePrefixes
 
-private fun StackTraceElement.asLocation() = "($fileName:$lineNumber):$methodName"
-
-/**
- * Returns the transformed message of [throwable] and every cause and suppressed throwable printed
- * in its stack trace (#187), keyed by identity. Throwables without a message are left out. Only
- * messages go through the transform: the "at ..." frames hold no logged values, so leaving them
- * out keeps the transform's input short.
- */
-private fun transformExceptionMessages(throwable: Throwable): Map<Throwable, String> {
+/** Returns [throwable] and every cause and suppressed throwable its stack trace prints, once each. */
+private fun printedThrowables(throwable: Throwable): Set<Throwable> {
     val printed = Collections.newSetFromMap(IdentityHashMap<Throwable, Boolean>())
     collectPrintedThrowables(throwable, printed)
-    val transformed = IdentityHashMap<Throwable, String>()
-    for (printedThrowable in printed) {
-        val message = printedThrowable.localizedMessage
-        if (!message.isNullOrEmpty()) transformed[printedThrowable] = transformLogText(message)
-    }
-    return transformed
+    return printed
 }
 
 /** Adds [throwable], its causes and its suppressed throwables to [into], once each. */

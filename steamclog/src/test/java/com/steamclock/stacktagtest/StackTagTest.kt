@@ -20,13 +20,13 @@ import timber.log.Timber
 
 class StackTagTest {
 
-    /** Records what a Destination would compute, without touching android.util.Log. */
+    /** Records what SteamclogTree would compute, without touching android.util.Log. */
     private class RecordingTree : Timber.Tree() {
         var caller: StackTraceElement? = null
         var wrapper: SteamclogThrowableWrapper? = null
 
         override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-            // Frame 0 is this tree. In production that frame is a Destination inside the library,
+            // Frame 0 is this tree. In production that frame is SteamclogTree inside the library,
             // so drop it to match what findCallerFrame sees there.
             val stackTrace = Throwable().stackTrace
             caller = findCallerFrame(stackTrace.copyOfRange(1, stackTrace.size))

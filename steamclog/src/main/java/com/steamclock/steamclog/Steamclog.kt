@@ -75,7 +75,7 @@ object SteamcLog {
     //
     // Problems with wrapping Timber calls:
     // - Timber trace element containing line number and method points to THIS (Steamclog) file.
-    //   The Destinations work around this by searching the call stack for the first frame outside
+    //   SteamclogTree works around this by searching the call stack for the first frame outside
     //   SteamcLog and Timber (see createCustomStackElementTag in Destinations.kt).
     //
     // Note, using default parameter values (obj: Any? = null) introduces one more call in the
@@ -209,6 +209,10 @@ object SteamcLog {
         externalLogFileTree.removeOldLogFiles()
     }
 
+    /**
+     * Plants [tree] alongside SteamcLog's own tree. Timber gives it the raw log text:
+     * [Config.messageTransform] does not apply to it.
+     */
     fun addCustomTree(tree: Timber.Tree) {
         Timber.plant(tree)
     }
@@ -218,7 +222,7 @@ object SteamcLog {
     //---------------------------------------------
     /**
      * Allows the Steamclog library to log info messages.
-     * The Destinations tag each log with the first stack frame outside SteamcLog and Timber, so a
+     * SteamclogTree tags each log with the first stack frame outside SteamcLog and Timber, so a
      * log made here is tagged with the app code that called into SteamcLog (for example, the
      * initWith call site), not with this file. Because of that search, calling the
      * info/debug/verbose methods directly from inside the library no longer breaks the tag
@@ -282,8 +286,8 @@ object SteamcLog {
     private fun updateTree(tree: Timber.Tree, enabled: Boolean) {
         try {
             if (enabled) {
-                // #168: Timber.plant does not skip a tree that is already planted, so a second
-                // initWith call would write every log line to the file twice.
+                // #168: Timber.plant does not skip a tree that is already planted, and a tree
+                // planted twice writes every log line twice.
                 if (tree !in Timber.forest()) Timber.plant(tree)
             } else {
                 Timber.uproot(tree)

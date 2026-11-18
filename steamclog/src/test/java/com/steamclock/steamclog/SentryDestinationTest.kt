@@ -153,7 +153,36 @@ class SentryDestinationTest {
         assertEquals("${TRANSFORM_FAILED_PREFIX}Failed https://host/path?code=raw-error", errorEvent.message?.formatted)
         val breadcrumbs = errorEvent.breadcrumbs!!.mapNotNull { it.message }
         assertTrue(breadcrumbs.contains("${TRANSFORM_FAILED_PREFIX}Loading https://host/path?code=raw-breadcrumb"))
-        assertTrue(breadcrumbs.any { it.startsWith("java.io.IOException: ${TRANSFORM_FAILED_PREFIX}GET") })
+        // The marker goes in front of the whole "Class: message" header line.
+        assertTrue(breadcrumbs.any { it.startsWith("${TRANSFORM_FAILED_PREFIX}java.io.IOException: GET") })
+    }
+
+    /** An object logged with an error; its redacted description becomes the line's extra data. */
+    private class LoggedRequest(val url: String)
+
+    @Test
+    fun errorWithObject_eventMessageIsTransformed_withoutTheObjectData() {
+        clog.config.messageTransform = { it.replace(Regex("code=[^&\\s]+"), "code=<removed>") }
+
+        clog.error("Failed https://host/path?code=from-error-with-object now", null, LoggedRequest("https://host/?code=from-object"))
+
+        val event = events.single()
+        assertEquals("Failed https://host/path?code=<removed> now", event.message?.formatted)
+        val breadcrumbs = event.breadcrumbs!!.mapNotNull { it.message }
+        assertTrue(breadcrumbs.toString(), breadcrumbs.any { it.startsWith("Failed https://host/path?code=<removed> now: ") })
+        assertFalse(breadcrumbs.any { it.contains("code=from-") })
+    }
+
+    @Test
+    fun messageTransformThatThrows_underDebugPreset_reportsNothingToSentry() {
+        // The Debug presets send nothing to Sentry (remote level None), so neither does the report.
+        clog.config.logLevel = LogLevelPreset.Debug
+        clog.config.messageTransform = { throw IllegalStateException("transform failed in this test") }
+
+        clog.info("Loading https://host/path?code=logged-under-debug-preset")
+
+        assertTrue(events.isEmpty())
+        assertFalse(transformFailureReported.get())
     }
 
     @Test

@@ -56,6 +56,26 @@ data class Config(
     var detailedLogsOnUserReports: Boolean = false,
 
     /**
+     * Optional; If set, called on the text of every log line before the console, the log file or
+     * Sentry gets it, so an app can remove values such as credentials (#187). It covers lines
+     * logged through SteamcLog and direct Timber calls, including logged object data, and each
+     * "Class: message" line of a throwable's stack trace (not its "at ..." frames). The tag (the
+     * caller location) is not passed in.
+     * It does not reach the exception Sentry attaches to an error event (#189), the [extraInfo]
+     * map, or trees added with SteamcLog.addCustomTree.
+     * It runs once per piece of text per log call, on the thread that logged (for a cause or
+     * suppressed throwable added after the log call, on the thread that writes the log file), so
+     * it must be cheap and thread-safe, and must not log.
+     * RISK: if it throws, the raw text is written and sent, after
+     * "[unscrubbed: messageTransform failed] ". SteamcLog reports the first failure to Sentry
+     * without the text. Default is null: text is unchanged.
+     *
+     * Declared before [extraInfo] so that a trailing lambda, Config(...) { purpose -> ... }, still
+     * sets [extraInfo].
+     */
+    var messageTransform: ((String) -> String)? = null,
+
+    /**
      * Set a callback to collect additional app specific properties to associate with an error,
      * called any time a error/fatal/user report is logged. The `purpose` parameter indicates
      * what sort of error this is, particularly to allow the callee to associate more personal
@@ -63,21 +83,7 @@ data class Config(
      * extra info passed into individual logging functions, this info is not redacted in any
      * way even if requireRedacted is set, the callback must handle and privacy preservation or redaction
      */
-    var extraInfo: ((ExtraInfoPurpose) -> Map<String, Any>)? = null,
-
-    /**
-     * Optional; If set, called on the text of every log line before the console, the log file or
-     * Sentry gets it, so an app can remove values such as credentials (#187). It covers lines
-     * logged through SteamcLog and direct Timber calls, including logged object data, and the
-     * messages in a throwable's stack trace (not its "at ..." frames). The tag (the caller
-     * location) is not passed in.
-     * It runs once per piece of text per log call, on the thread that logged, so it must be cheap
-     * and thread-safe, and must not log.
-     * RISK: if it throws, the raw text is written and sent, after
-     * "[unscrubbed: messageTransform failed] ". SteamcLog reports the first failure to Sentry
-     * without the text. Default is null: text is unchanged.
-     */
-    var messageTransform: ((String) -> String)? = null
+    var extraInfo: ((ExtraInfoPurpose) -> Map<String, Any>)? = null
 ) {
     override fun toString(): String {
         return "Config(" +
